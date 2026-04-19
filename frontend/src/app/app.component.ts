@@ -1,14 +1,21 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LoadingOverlayComponent } from './shared/components/loading-overlay/loading-overlay.component';
+import { NavbarComponent } from './shared/components/navbar/navbar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, LoadingOverlayComponent],
+  imports: [RouterOutlet, NavbarComponent],
   template: `
-    <app-loading-overlay />
-    <router-outlet />
-  `
+    <app-navbar />
+    <main>
+      <router-outlet />
+    </main>
+  `,
+  styles: [`
+    main {
+      min-height: calc(100vh - var(--nav-height));
+    }
+  `]
 })
 export class AppComponent {}
