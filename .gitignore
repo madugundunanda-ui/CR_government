@@ -1,17 +1,24 @@
-# Ignore all Maven build outputs
+# --- Backend (Spring Boot/Maven) ---
 **/target/
 **/*.class
+backend/app-smoke.log
+*.log
 
-# Ignore IDE specific files
+# --- Frontend (Angular/Node) ---
+frontend/node_modules/
+frontend/dist/
+# This is the "all these files" folder created by ng serve
+frontend/.angular/
+frontend/package-lock.json
+
+# --- Security & Certificates ---
+# Ignore the .pem file you used for Azure SSL
+*.pem
+*.jks
+
+# --- IDE & OS ---
 .idea/
 .vscode/
 *.iml
-
-# Ignore OS files
 .DS_Store
 Thumbs.db
-
-# Ignore frontend build files
-frontend/dist/
-frontend/node_modules/
-package-lock.json
