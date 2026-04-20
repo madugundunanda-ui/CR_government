@@ -16,50 +16,46 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register/register.component').then(m => m.RegisterComponent),
     canActivate: [guestGuard],
   },
+  // ─── Citizen ────────────────────────────────────────────────────────────────
   {
     path: 'citizen',
     canActivate: [authGuard],
     data: { role: 'citizen' },
     children: [
-      {
-        path: 'dashboard',
-        loadComponent: () => import('./citizen/dashboard/citizen-dashboard.component').then(m => m.CitizenDashboardComponent),
-      },
-      {
-        path: 'raise-complaint',
-        loadComponent: () => import('./citizen/raise-complaint/raise-complaint.component').then(m => m.RaiseComplaintComponent),
-      },
-      {
-        path: 'complaint-history',
-        loadComponent: () => import('./citizen/complaint-history/complaint-history.component').then(m => m.ComplaintHistoryComponent),
-      },
+      { path: 'dashboard', loadComponent: () => import('./citizen/dashboard/citizen-dashboard.component').then(m => m.CitizenDashboardComponent) },
+      { path: 'raise-complaint', loadComponent: () => import('./citizen/raise-complaint/raise-complaint.component').then(m => m.RaiseComplaintComponent) },
+      { path: 'complaint-history', loadComponent: () => import('./citizen/complaint-history/complaint-history.component').then(m => m.ComplaintHistoryComponent) },
     ],
   },
+  // ─── Officer ────────────────────────────────────────────────────────────────
   {
     path: 'officer',
     canActivate: [authGuard],
     data: { role: 'officer' },
     children: [
-      {
-        path: 'dashboard',
-        loadComponent: () => import('./officer/dashboard/officer-dashboard.component').then(m => m.OfficerDashboardComponent),
-      },
+      { path: 'dashboard', loadComponent: () => import('./officer/dashboard/officer-dashboard.component').then(m => m.OfficerDashboardComponent) },
+      { path: 'assigned-complaints', loadComponent: () => import('./officer/assigned-complaints/assigned-complaints.component').then(m => m.AssignedComplaintsComponent) },
     ],
   },
+  // ─── Admin ──────────────────────────────────────────────────────────────────
   {
     path: 'admin',
     canActivate: [authGuard],
     data: { role: 'admin' },
     children: [
-      {
-        path: 'dashboard',
-        loadComponent: () => import('./admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
-      },
-      {
-        path: 'all-complaints',
-        loadComponent: () => import('./admin/all-complaints/all-complaints.component').then(m => m.AdminAllComplaintsComponent),
-      },
+      { path: 'dashboard', loadComponent: () => import('./admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
+      { path: 'all-complaints', loadComponent: () => import('./admin/all-complaints/all-complaints.component').then(m => m.AdminAllComplaintsComponent) },
+      // Phase 3 routes added below
+      { path: 'officers', loadComponent: () => import('./admin/officers/officers.component').then(m => m.OfficersComponent) },
+      { path: 'citizens', loadComponent: () => import('./admin/citizens/citizens.component').then(m => m.CitizensComponent) },
+      { path: 'departments', loadComponent: () => import('./admin/departments/departments.component').then(m => m.DepartmentsComponent) },
     ],
+  },
+  // ─── Shared profile (all roles) ─────────────────────────────────────────────
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./shared/components/profile/profile.component').then(m => m.ProfileComponent),
   },
   { path: '**', redirectTo: '' },
 ];

@@ -24,7 +24,6 @@ public class RegisterRequest {
     @NotNull(message = "Role is required")
     private Role role;
 
-    @NotBlank(message = "Contact number is required")
     private String contactNumber;
 
     @NotBlank(message = "Address is required")

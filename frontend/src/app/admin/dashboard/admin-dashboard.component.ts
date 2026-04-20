@@ -11,7 +11,6 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
   imports: [RouterLink, CommonModule],
   template: `
     <div class="dashboard-layout">
-      <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-user">
           <div class="avatar" style="background: #e9c46a; color: #1a2340;">SB</div>
@@ -22,25 +21,27 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
           <div class="nav-section-title">Overview</div>
           <a routerLink="/admin/dashboard" class="nav-item active"><span class="nav-icon">📊</span> Dashboard</a>
           <a routerLink="/admin/all-complaints" class="nav-item"><span class="nav-icon">📋</span> All Complaints <span class="badge-count">{{ totalComplaints }}</span></a>
-          <a href="#" class="nav-item"><span class="nav-icon">👥</span> Citizens</a>
-          <a href="#" class="nav-item"><span class="nav-icon">👮</span> Officers</a>
+          <a routerLink="/admin/citizens" class="nav-item"><span class="nav-icon">👥</span> Citizens</a>
+          <a routerLink="/admin/officers" class="nav-item"><span class="nav-icon">👮</span> Officers</a>
+          
           <div class="nav-section-title">Management</div>
-          <a href="#" class="nav-item"><span class="nav-icon">🏢</span> Departments</a>
+          <a routerLink="/admin/departments" class="nav-item"><span class="nav-icon">🏢</span> Departments</a>
           <a href="#" class="nav-item"><span class="nav-icon">🗺️</span> Ward Management</a>
           <a href="#" class="nav-item"><span class="nav-icon">⚙️</span> SLA Configuration</a>
           <a href="#" class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+          
           <div class="nav-section-title">Reports</div>
           <a href="#" class="nav-item"><span class="nav-icon">📈</span> Analytics</a>
           <a href="#" class="nav-item"><span class="nav-icon">📥</span> Export Reports</a>
           <a href="#" class="nav-item"><span class="nav-icon">🔒</span> Audit Logs</a>
-          <div class="nav-section-title">System</div>
-          <a href="#" class="nav-item"><span class="nav-icon">⚙️</span> System Settings</a>
+          
+          <div class="nav-section-title">Account</div>
+          <a routerLink="/profile" class="nav-item"><span class="nav-icon">👤</span> Profile</a>
           <button class="nav-item logout-btn" (click)="auth.logout()"><span class="nav-icon">🚪</span> Sign Out</button>
         </nav>
       </aside>
 
       <main class="main-content">
-        <!-- Header -->
         <div class="admin-header">
           <div>
             <div class="ah-greeting">Admin Panel</div>
@@ -53,7 +54,6 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
           </div>
         </div>
 
-        <!-- KPI Stats -->
         <div class="kpi-grid">
           <div class="kpi-card blue">
             <div class="kpi-icon">📋</div>
@@ -81,13 +81,13 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
           </div>
           <div class="kpi-card purple">
             <div class="kpi-icon">👥</div>
-            <div class="kpi-num">1,24,892</div>
+            <div class="kpi-num">{{ realStats?.totalCitizens?.toLocaleString() ?? '0' }}</div>
             <div class="kpi-label">Registered Citizens</div>
             <div class="kpi-trend">↑ 8,200 this quarter</div>
           </div>
           <div class="kpi-card orange">
             <div class="kpi-icon">👮</div>
-            <div class="kpi-num">{{ officers.length }}</div>
+            <div class="kpi-num">{{ realStats?.totalOfficers ?? 0 }}</div>
             <div class="kpi-label">Active Officers</div>
             <div class="kpi-trend">Across {{ departments.length }} departments</div>
           </div>
@@ -106,7 +106,6 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
         </div>
 
         <div class="admin-grid">
-          <!-- Department Performance -->
           <div class="dept-panel">
             <div class="panel-header-row">
               <h3>Department Performance</h3>
@@ -148,9 +147,7 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
             </div>
           </div>
 
-          <!-- Right Column -->
           <div class="admin-right">
-            <!-- Officers Table -->
             <div class="card" style="margin-bottom:16px;">
               <div class="card-header">
                 <h4>Field Officers</h4>
@@ -192,7 +189,6 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
               </div>
             </div>
 
-            <!-- Quick Actions -->
             <div class="quick-actions-card">
               <h4>⚡ Quick Actions</h4>
               <div class="qa-list">
@@ -227,7 +223,6 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
               </div>
             </div>
 
-            <!-- Recent Activity -->
             <div class="card" style="margin-top:16px;">
               <div class="card-header">
                 <h4>Recent System Activity</h4>
@@ -396,20 +391,14 @@ import { ComplaintResponse, ComplaintService } from '../../core/services/complai
 })
 export class AdminDashboardComponent {
   complaints: ComplaintResponse[] = [];
+  realStats: any = null;
+
+  totalComplaints: number = 0;
+  pendingComplaints: any[] = [];
+  resolvedComplaints: any[] = [];
+
   departments = this.mockData.departments;
-  officers    = this.mockData.officers;
-
-  get totalComplaints() {
-    return this.complaints.length;
-  }
-
-  get pendingComplaints() {
-    return this.complaints.filter(c => c.status === 'PENDING');
-  }
-
-  get resolvedComplaints() {
-    return this.complaints.filter(c => c.status === 'RESOLVED');
-  }
+  officers = this.mockData.officers;
 
   activities = [
     { icon: '✅', msg: 'Complaint GRV-2024-00142 resolved by Anand Verma', time: '5 mins ago' },
@@ -425,13 +414,23 @@ export class AdminDashboardComponent {
     private mockData: MockDataService,
     private complaintService: ComplaintService
   ) {
-    this.complaintService.getAllComplaints().subscribe({
-      next: (complaints) => {
-        this.complaints = complaints;
+    // Load real stats from backend
+    this.complaintService.getStats().subscribe({
+      next: (stats) => {
+        this.realStats = stats;
+        this.totalComplaints = stats.total;
+        this.pendingComplaints = Array(stats.pending).fill({});
+        this.resolvedComplaints = Array(stats.resolved + stats.closed).fill({});
       },
-      error: (err) => {
-        console.error('Unable to load admin complaint stats', err);
-        this.complaints = [];
+      error: () => {
+        // fallback to complaint list if stats endpoint fails
+        this.complaintService.getAllComplaints().subscribe({
+          next: (complaints) => {
+            this.totalComplaints = complaints.length;
+            this.pendingComplaints = complaints.filter(c => c.status === 'PENDING');
+            this.resolvedComplaints = complaints.filter(c => c.status === 'RESOLVED' || c.status === 'CLOSED');
+          }
+        });
       }
     });
   }

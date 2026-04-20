@@ -1,23 +1,10 @@
 package com.civic.grievance.entity;
 
+import com.civic.grievance.entity.enums.Category;
 import com.civic.grievance.entity.enums.Priority;
 import com.civic.grievance.entity.enums.Status;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -48,6 +35,9 @@ public class Complaint {
     @Column(nullable = false)
     private Priority priority;
 
+    @Enumerated(EnumType.STRING)
+    private Category category;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "citizen_id", nullable = false)
     private User citizen;
@@ -56,13 +46,33 @@ public class Complaint {
     @JoinColumn(name = "assigned_officer_id")
     private User assignedOfficer;
 
-    private Double latitude;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
+    private Double latitude;
     private Double longitude;
+
+    @Column(length = 500)
+    private String address;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime slaDeadline;
+
+    private LocalDateTime resolvedAt;
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (updatedAt == null) updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

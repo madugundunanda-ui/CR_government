@@ -25,7 +25,6 @@ function passwordMatchValidator(control: AbstractControl) {
       </div>
 
       <div class="register-layout">
-        <!-- Left Panel -->
         <div class="reg-left">
           <div class="reg-brand">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="48" height="48">
@@ -73,11 +72,10 @@ function passwordMatchValidator(control: AbstractControl) {
           </div>
         </div>
 
-        <!-- Right: Form -->
         <div class="reg-right">
           <div class="reg-card">
             <div class="reg-card-header">
-              <h2>Create Citizen Account</h2>
+              <h2>Create Account</h2>
               <p>Register to access government services and raise civic complaints</p>
             </div>
 
@@ -92,11 +90,20 @@ function passwordMatchValidator(control: AbstractControl) {
             </div>
 
             <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="reg-form">
+              <div class="form-group">
+                <label for="regRole">Registering As <span class="required">*</span></label>
+                <select id="regRole" formControlName="role" class="form-control">
+                  <option value="" disabled>Select role</option>
+                  <option value="CITIZEN">🏠 Citizen</option>
+                  <option value="OFFICER">👮 Municipal Officer (requires admin approval)</option>
+                </select>
+              </div>
+
               <div class="form-row">
                 <div class="form-group">
                   <label for="fullName">Full Name <span class="required">*</span></label>
                   <input id="fullName" type="text" formControlName="fullName"
-                    class="form-control" placeholder="As per Aadhar Card"
+                    class="form-control" placeholder="As per Identity Card"
                     [class.is-invalid]="isInvalid('fullName')" />
                   <span *ngIf="isInvalid('fullName')" class="error-message">Full name is required (min. 3 characters).</span>
                 </div>
@@ -174,7 +181,6 @@ function passwordMatchValidator(control: AbstractControl) {
                       <button type="button" class="toggle-pwd" (click)="togglePwd()">{{ showPwd ? '🙈' : '👁️' }}</button>
                   </div>
                     <span *ngIf="isInvalid('password')" class="error-message">Password must be at least 8 characters.</span>
-                  <!-- Strength bar -->
                   <div class="pwd-strength">
                     <div class="strength-bars">
                         <div *ngFor="let bar of [1,2,3,4]" class="strength-bar" [class.active]="bar <= pwdStrength()"></div>
@@ -213,7 +219,7 @@ function passwordMatchValidator(control: AbstractControl) {
                 </ng-container>
                 <ng-template #createLabel>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8zM19 8v6M22 11h-6"/></svg>
-                  Create My Citizen Account
+                  Create My Account
                 </ng-template>
               </button>
 
@@ -423,20 +429,21 @@ function passwordMatchValidator(control: AbstractControl) {
 })
 export class RegisterComponent {
   registerForm: FormGroup;
-  loading  = false;
+  loading = false;
   errorMsg = '';
   successMsg = '';
-  showPwd     = false;
+  showPwd = false;
   showConfirm = false;
 
   constructor(private fb: FormBuilder, private auth: AuthService) {
     this.registerForm = this.fb.group({
+      role: ['CITIZEN', Validators.required],
       fullName: ['', [Validators.required, Validators.minLength(3)]],
-      phone:    ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-      email:    ['', [Validators.required, Validators.email]],
-      address:  ['', Validators.required],
-      ward:     ['', Validators.required],
-      idType:   ['', Validators.required],
+      phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+      email: ['', [Validators.required, Validators.email]],
+      address: ['', Validators.required],
+      ward: ['', Validators.required],
+      idType: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
       consent: [false, Validators.requiredTrue],
@@ -457,9 +464,9 @@ export class RegisterComponent {
     const pwd: string = this.registerForm.get('password')?.value ?? '';
     if (!pwd) return 0;
     let s = 0;
-    if (pwd.length >= 8)  s++;
+    if (pwd.length >= 8) s++;
     if (/[A-Z]/.test(pwd)) s++;
-    if (/\d/.test(pwd))    s++;
+    if (/\d/.test(pwd)) s++;
     if (/[^a-zA-Z0-9]/.test(pwd)) s++;
     return s;
   }
@@ -476,17 +483,22 @@ export class RegisterComponent {
     this.errorMsg = '';
     this.successMsg = '';
 
-    const { fullName, email, phone, address, password } = this.registerForm.value;
+    const { fullName, email, phone, address, password, role } = this.registerForm.value;
     this.auth.register({
       name: fullName,
       email,
       password,
       contactNumber: phone,
       address,
-      role: 'CITIZEN',
+      role: role || 'CITIZEN',
     }).subscribe({
       next: (res) => {
-        this.successMsg = res.message || 'Registration successful! You can now log in.';
+        // Show appropriate message based on role
+        if (this.registerForm.get('role')?.value === 'OFFICER') {
+          this.successMsg = res.message || 'Registration submitted! Your account is awaiting admin approval. You will be able to log in once approved.';
+        } else {
+          this.successMsg = res.message || 'Registration successful! You can now log in.';
+        }
         this.registerForm.reset();
         this.loading = false;
       },

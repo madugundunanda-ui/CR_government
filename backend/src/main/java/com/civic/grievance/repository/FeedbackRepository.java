@@ -1,0 +1,11 @@
+package com.civic.grievance.repository;
+
+import com.civic.grievance.entity.Feedback;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
+    Optional<Feedback> findByComplaint_Id(Long complaintId);
+    boolean existsByComplaint_Id(Long complaintId);
+}

@@ -1,22 +1,8 @@
-// =============================================
-// CORE MODELS / INTERFACES
-// =============================================
-
 export type UserRole = 'citizen' | 'officer' | 'admin';
-export type ComplaintStatus = 'pending' | 'open' | 'in-progress' | 'resolved' | 'closed' | 'rejected';
+
+// These now match the backend enum values exactly
+export type ComplaintStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-export type Department =
-  | 'Roads & Infrastructure'
-  | 'Water & Sanitation'
-  | 'Electricity'
-  | 'Solid Waste Management'
-  | 'Parks & Recreation'
-  | 'Health & Sanitation'
-  | 'Traffic & Transport'
-  | 'Building & Town Planning'
-  | 'Property Tax'
-  | 'Street Lighting'
-  | 'Others';
 
 export interface User {
   id: string;
@@ -28,49 +14,18 @@ export interface User {
   avatar?: string;
   createdAt: string;
   isActive: boolean;
+  approved?: boolean;
 }
 
-export interface Complaint {
-  id: string;
-  ticketNo: string;
-  title: string;
-  description: string;
-  category: Department;
-  status: ComplaintStatus;
-  priority: Priority;
-  citizenId: string;
-  citizenName: string;
-  assignedOfficerId?: string;
-  assignedOfficerName?: string;
-  imageUrl?: string;
-  latitude?: number;
-  longitude?: number;
+export interface UserResponse {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  contactNumber?: string;
   address?: string;
-  ward?: string;
+  approved: boolean;
   createdAt: string;
-  updatedAt: string;
-  resolvedAt?: string;
-  timeline: TimelineEvent[];
-  rating?: number;
-  feedback?: string;
-}
-
-export interface TimelineEvent {
-  id: string;
-  event: string;
-  description: string;
-  status: ComplaintStatus;
-  timestamp: string;
-  by: string;
-}
-
-export interface DashboardStats {
-  total: number;
-  pending: number;
-  inProgress: number;
-  resolved: number;
-  rejected: number;
-  slaSuccess: number;
 }
 
 export interface Department_ {
@@ -83,13 +38,42 @@ export interface Department_ {
   avgResolutionDays: number;
 }
 
+export interface DepartmentResponse {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt?: string;
+}
+
 export interface Officer {
   id: string;
   name: string;
   email: string;
-  department: Department;
+  department: string;
   employeeId: string;
   assignedComplaints: number;
   resolvedComplaints: number;
   isActive: boolean;
+}
+
+export interface NotificationItem {
+  id: number;
+  title: string;
+  message: string;
+  read: boolean;
+  relatedComplaintId?: number;
+  createdAt: string;
+}
+
+export interface ComplaintStatsResponse {
+  total: number;
+  pending: number;
+  assigned: number;
+  inProgress: number;
+  resolved: number;
+  closed: number;
+  highPriority: number;
+  urgentPriority: number;
+  totalCitizens: number;
+  totalOfficers: number;
 }

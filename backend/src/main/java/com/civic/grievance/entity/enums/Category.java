@@ -1,0 +1,15 @@
+package com.civic.grievance.entity.enums;
+
+public enum Category {
+    ROADS_INFRASTRUCTURE,
+    WATER_SANITATION,
+    ELECTRICITY,
+    SOLID_WASTE_MANAGEMENT,
+    PARKS_RECREATION,
+    HEALTH_SANITATION,
+    TRAFFIC_TRANSPORT,
+    BUILDING_TOWN_PLANNING,
+    PROPERTY_TAX,
+    STREET_LIGHTING,
+    OTHERS
+}

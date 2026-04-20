@@ -373,7 +373,17 @@ input, textarea, select {
   &-resolved   { background: #d1e7dd; color: #0a3622; }
   &-closed     { background: #e2e3e5; color: #41464b; }
   &-rejected   { background: #f8d7da; color: #58151c; }
-
+  // Backend uppercase status values
+  &-PENDING     { background: #fff3cd; color: #856404; }
+  &-ASSIGNED    { background: #cfe2ff; color: #0a3678; }
+  &-IN_PROGRESS { background: #fff3cd; color: #664d03; }
+  &-RESOLVED    { background: #d1e7dd; color: #0a3622; }
+  &-CLOSED      { background: #e2e3e5; color: #41464b; }
+  // Backend uppercase priority values
+  &-HIGH   { background: #f8d7da; color: #58151c; }
+  &-MEDIUM { background: #fff3cd; color: #664d03; }
+  &-LOW    { background: #d1e7dd; color: #0a3622; }
+  &-URGENT { background: #f1e8ff; color: #6a0dad; font-weight: 700; }
   &-high   { background: #f8d7da; color: #58151c; }
   &-medium { background: #fff3cd; color: #664d03; }
   &-low    { background: #d1e7dd; color: #0a3622; }

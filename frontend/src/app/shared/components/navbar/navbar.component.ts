@@ -10,7 +10,6 @@ import { AuthService } from '../../../core/services/auth.service';
   template: `
     <nav class="navbar" [class.scrolled]="isScrolled">
       <div class="nav-container">
-        <!-- Logo -->
         <a routerLink="/" class="nav-logo">
           <div class="logo-emblem">
             <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
@@ -26,7 +25,6 @@ import { AuthService } from '../../../core/services/auth.service';
           </div>
         </a>
 
-        <!-- Desktop Nav Links -->
         <ul class="nav-links" [class.open]="menuOpen">
           <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Home</a></li>
           <li><a href="#about" (click)="closeMenu()">About</a></li>
@@ -46,7 +44,6 @@ import { AuthService } from '../../../core/services/auth.service';
           </ng-container>
         </ul>
 
-        <!-- Auth Actions -->
         <div class="nav-actions">
           <ng-container *ngIf="!auth.isLoggedIn(); else userBlock">
             <a routerLink="/auth/login" class="btn btn-outline-nav">Login</a>
@@ -68,6 +65,10 @@ import { AuthService } from '../../../core/services/auth.service';
                   <small>{{ auth.currentUser()?.email }}</small>
                 </div>
                 <div class="dropdown-divider"></div>
+                <a routerLink="/profile" class="dropdown-item" (click)="userMenuOpen = false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  My Profile
+                </a>
                 <button class="dropdown-item logout" (click)="logout()">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                   Sign Out
@@ -77,7 +78,6 @@ import { AuthService } from '../../../core/services/auth.service';
           </ng-template>
         </div>
 
-        <!-- Mobile Hamburger -->
         <button class="hamburger" (click)="toggleMenu()" [class.open]="menuOpen" aria-label="Toggle menu">
           <span></span><span></span><span></span>
         </button>
@@ -290,6 +290,7 @@ import { AuthService } from '../../../core/services/auth.service';
           background: none;
           border: none;
           width: 100%;
+          text-decoration: none;
           text-align: left;
           cursor: pointer;
           transition: background 0.15s;
@@ -366,7 +367,7 @@ export class NavbarComponent {
   menuOpen = false;
   userMenuOpen = false;
 
-  constructor(public auth: AuthService) {}
+  constructor(public auth: AuthService) { }
 
   @HostListener('window:scroll')
   onScroll() {
@@ -374,12 +375,12 @@ export class NavbarComponent {
   }
 
   toggleMenu() { this.menuOpen = !this.menuOpen; }
-  closeMenu()  { this.menuOpen = false; }
+  closeMenu() { this.menuOpen = false; }
   toggleUserMenu() { this.userMenuOpen = !this.userMenuOpen; }
 
   getInitials(): string {
     const name = this.auth.currentUser()?.name ?? '';
-    return name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   }
 
   logout() {

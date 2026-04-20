@@ -1,20 +1,8 @@
 package com.civic.grievance.entity;
 
 import com.civic.grievance.entity.enums.Role;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -44,11 +32,15 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    @Column(nullable = false)
     private String contactNumber;
 
     @Column(nullable = false)
     private String address;
+
+    // false for OFFICER accounts until admin approves; true for all others
+    @Builder.Default
+    @Column(name = "approved", columnDefinition = "TINYINT(1) NOT NULL DEFAULT 1")
+    private boolean approved = true;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -57,6 +49,12 @@ public class User {
     public void prePersist() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        // Officers must be approved by admin before they can log in
+        if (role == Role.OFFICER || role == Role.SUPERVISOR) {
+            // Keep whatever was set (false by default via builder)
+        } else {
+            this.approved = true;
         }
     }
 }

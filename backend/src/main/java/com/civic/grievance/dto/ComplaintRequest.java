@@ -1,5 +1,6 @@
 package com.civic.grievance.dto;
 
+import com.civic.grievance.entity.enums.Category;
 import com.civic.grievance.entity.enums.Priority;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,12 +20,14 @@ public class ComplaintRequest {
     @NotNull(message = "Priority is required")
     private Priority priority;
 
-    @NotNull(message = "Citizen id is required")
+    private Category category;
+
+    @NotNull(message = "Citizen ID is required")
     private Long citizenId;
 
     private Long assignedOfficerId;
-
+    private Long departmentId;
     private Double latitude;
-
     private Double longitude;
+    private String address;
 }

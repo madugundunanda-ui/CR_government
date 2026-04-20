@@ -10,7 +10,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, CommonModule],
   template: `
-    <!-- Page Header -->
     <div class="page-header">
       <div class="container">
         <div class="breadcrumb">
@@ -25,7 +24,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
 
     <div class="container" style="padding-top:32px; padding-bottom:48px;">
       <div class="complaint-layout">
-        <!-- Form -->
         <div class="complaint-form-wrapper">
 
           <div *ngIf="successMsg" class="alert alert-success" style="margin-bottom:20px;">
@@ -42,7 +40,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
 
           <form [formGroup]="complaintForm" (ngSubmit)="onSubmit()">
 
-            <!-- SECTION 1: Basic Info -->
             <div class="form-section">
               <div class="form-section-header">
                 <div class="section-num">01</div>
@@ -97,7 +94,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
               </div>
             </div>
 
-            <!-- SECTION 2: Location -->
             <div class="form-section">
               <div class="form-section-header">
                 <div class="section-num">02</div>
@@ -151,7 +147,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
               </div>
             </div>
 
-            <!-- SECTION 3: Evidence -->
             <div class="form-section">
               <div class="form-section-header">
                 <div class="section-num">03</div>
@@ -191,7 +186,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
               </div>
             </div>
 
-            <!-- SECTION 4: Declaration -->
             <div class="form-section">
               <div class="form-section-header">
                 <div class="section-num">04</div>
@@ -211,7 +205,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
               </div>
             </div>
 
-            <!-- Submit -->
             <div class="form-actions">
               <a routerLink="/citizen/dashboard" class="btn btn-outline">Cancel</a>
               <button type="submit" class="btn btn-secondary" [disabled]="loading">
@@ -227,9 +220,7 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
           </form>
         </div>
 
-        <!-- Sidebar Info -->
         <aside class="complaint-sidebar">
-          <!-- Tips -->
           <div class="side-card">
             <h4>💡 Tips for a Good Complaint</h4>
             <ul class="tip-list">
@@ -241,8 +232,7 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
             </ul>
           </div>
 
-          <!-- SLA Info -->
-            <div class="side-card sla-card">
+          <div class="side-card sla-card">
             <h4>⏱️ Resolution Timelines (SLA)</h4>
             <div class="sla-list">
                 <div *ngFor="let sla of slaData" class="sla-item">
@@ -252,7 +242,6 @@ import { ComplaintRequest, ComplaintService } from '../../core/services/complain
             </div>
           </div>
 
-          <!-- Contact -->
           <div class="side-card contact-card">
             <h4>📞 Need Help?</h4>
             <p>For emergency civic issues, call our 24×7 helpline:</p>
@@ -490,15 +479,15 @@ export class RaiseComplaintComponent {
 
   constructor(private fb: FormBuilder, public auth: AuthService, private complaintService: ComplaintService) {
     this.complaintForm = this.fb.group({
-      title:       ['', [Validators.required, Validators.minLength(10), Validators.maxLength(100)]],
-      category:    ['', Validators.required],
-      priority:    ['', Validators.required],
+      title: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(100)]],
+      category: ['', Validators.required],
+      priority: ['', Validators.required],
       description: ['', [Validators.required, Validators.minLength(30)]],
-      address:     ['', Validators.required],
-      ward:        [''],
-      latitude:    [''],
-      longitude:   [''],
-      imageUrl:    [''],
+      address: ['', Validators.required],
+      ward: [''],
+      latitude: [''],
+      longitude: [''],
+      imageUrl: [''],
       declaration: [false],
     });
   }
@@ -536,15 +525,15 @@ export class RaiseComplaintComponent {
     this.successMsg = '';
 
     const val = this.complaintForm.value;
-    const currentUser = this.auth.currentUser();
     const payload: ComplaintRequest = {
       title: val.title,
       description: val.description,
       priority: val.priority,
-      citizenId: currentUser ? Number(currentUser.id) : 0,
-      assignedOfficerId: undefined,
+      category: val.category || undefined,
+      // citizenId not needed — backend extracts from JWT token
       latitude: val.latitude ? Number(val.latitude) : undefined,
       longitude: val.longitude ? Number(val.longitude) : undefined,
+      address: val.address || undefined,
     };
 
     this.complaintService.createComplaint(payload).subscribe({
