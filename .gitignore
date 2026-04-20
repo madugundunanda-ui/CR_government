@@ -1,24 +1,15 @@
-# --- Backend (Spring Boot/Maven) ---
+# Backend
 **/target/
 **/*.class
 backend/app-smoke.log
-*.log
 
-# --- Frontend (Angular/Node) ---
+# Frontend (The main culprits in your images)
+frontend/.angular/
 frontend/node_modules/
 frontend/dist/
-# This is the "all these files" folder created by ng serve
-frontend/.angular/
 frontend/package-lock.json
 
-# --- Security & Certificates ---
-# Ignore the .pem file you used for Azure SSL
+# Security & IDE
 *.pem
-*.jks
-
-# --- IDE & OS ---
 .idea/
 .vscode/
-*.iml
-.DS_Store
-Thumbs.db
