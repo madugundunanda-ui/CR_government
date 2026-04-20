@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
+import { ComplaintRequest, ComplaintService } from '../../core/services/complaint.service';
 
 @Component({
   selector: 'app-raise-complaint',
@@ -33,6 +34,10 @@ import { AuthService } from '../../core/services/auth.service';
               <strong>Complaint Submitted Successfully!</strong>
               <div>{{ successMsg }}</div>
             </div>
+          </div>
+          <div *ngIf="errorMsg" class="alert alert-danger" style="margin-bottom:20px;">
+            <strong>Submission Failed</strong>
+            <div>{{ errorMsg }}</div>
           </div>
 
           <form [formGroup]="complaintForm" (ngSubmit)="onSubmit()">
@@ -461,6 +466,7 @@ export class RaiseComplaintComponent {
   complaintForm: FormGroup;
   loading = false;
   successMsg = '';
+  errorMsg = '';
   locating = false;
   locationCaptured = false;
   selectedFiles: File[] = [];
@@ -482,7 +488,7 @@ export class RaiseComplaintComponent {
     { dept: 'Building / Planning', days: '15 days', level: 'slow' },
   ];
 
-  constructor(private fb: FormBuilder, public auth: AuthService) {
+  constructor(private fb: FormBuilder, public auth: AuthService, private complaintService: ComplaintService) {
     this.complaintForm = this.fb.group({
       title:       ['', [Validators.required, Validators.minLength(10), Validators.maxLength(100)]],
       category:    ['', Validators.required],
@@ -526,12 +532,34 @@ export class RaiseComplaintComponent {
     this.complaintForm.markAllAsTouched();
     if (this.complaintForm.invalid) return;
     this.loading = true;
-    setTimeout(() => {
-      const ticketNo = `GRV-2024-${String(Math.floor(Math.random() * 900) + 100).padStart(5, '0')}`;
-      this.successMsg = `Your complaint has been submitted. Ticket Number: ${ticketNo}. You will receive an SMS confirmation shortly.`;
-      this.complaintForm.reset();
-      this.loading = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1200);
+    this.errorMsg = '';
+    this.successMsg = '';
+
+    const val = this.complaintForm.value;
+    const currentUser = this.auth.currentUser();
+    const payload: ComplaintRequest = {
+      title: val.title,
+      description: val.description,
+      priority: val.priority,
+      citizenId: currentUser ? Number(currentUser.id) : 0,
+      assignedOfficerId: undefined,
+      latitude: val.latitude ? Number(val.latitude) : undefined,
+      longitude: val.longitude ? Number(val.longitude) : undefined,
+    };
+
+    this.complaintService.createComplaint(payload).subscribe({
+      next: (res) => {
+        this.successMsg = res?.id ? `Your complaint has been submitted. Complaint ID: ${res.id}.` : 'Your complaint has been submitted successfully.';
+        this.complaintForm.reset();
+        this.loading = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+      error: (err) => {
+        console.error('Complaint submission error', err);
+        this.errorMsg = err?.error?.message || 'Unable to submit complaint. Please try again later.';
+        this.loading = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
   }
 }

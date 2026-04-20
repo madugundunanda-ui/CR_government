@@ -474,18 +474,27 @@ export class RegisterComponent {
     if (this.registerForm.invalid) return;
     this.loading = true;
     this.errorMsg = '';
+    this.successMsg = '';
 
-    setTimeout(() => {
-      const { fullName, email, phone, address } = this.registerForm.value;
-      const result = this.auth.register({ name: fullName, email, phone, address });
-      if (result.success) {
-        this.successMsg = result.message;
+    const { fullName, email, phone, address, password } = this.registerForm.value;
+    this.auth.register({
+      name: fullName,
+      email,
+      password,
+      contactNumber: phone,
+      address,
+      role: 'CITIZEN',
+    }).subscribe({
+      next: (res) => {
+        this.successMsg = res.message || 'Registration successful! You can now log in.';
         this.registerForm.reset();
-      } else {
-        this.errorMsg = result.message;
+        this.loading = false;
+      },
+      error: (err: any) => {
+        this.errorMsg = err?.error?.message || 'Unable to register. Please try again.';
+        this.loading = false;
       }
-      this.loading = false;
-    }, 900);
+    });
   }
 
   togglePwd() { this.showPwd = !this.showPwd; }

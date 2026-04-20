@@ -1,10 +1,10 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
-import { MockDataService } from '../../core/services/mock-data.service';
 import { Complaint, ComplaintStatus } from '../../core/models/models';
+import { ComplaintResponse, ComplaintService } from '../../core/services/complaint.service';
 
 @Component({
   selector: 'app-complaint-history',
@@ -416,7 +416,7 @@ import { Complaint, ComplaintStatus } from '../../core/models/models';
   `]
 })
 export class ComplaintHistoryComponent {
-  all: Complaint[];
+  all: Complaint[] = [];
   activeStatus = 'all';
   selectedComplaint: Complaint | null = null;
   searchQuery = '';
@@ -432,8 +432,21 @@ export class ComplaintHistoryComponent {
     { label: 'Rejected',    value: 'rejected' },
   ];
 
-  constructor(public auth: AuthService, private mockData: MockDataService) {
-    this.all = this.mockData.getComplaintsByUser('u1');
+  constructor(public auth: AuthService, private complaintService: ComplaintService) {
+    const currentUser = this.auth.currentUser();
+    const userId = currentUser ? Number(currentUser.id) : null;
+
+    this.complaintService.getAllComplaints().subscribe({
+      next: (complaints) => {
+        this.all = userId ? complaints
+          .filter(c => c.citizenId === userId)
+          .map(c => this.toComplaint(c)) : [];
+      },
+      error: (err) => {
+        console.error('Unable to load complaint history', err);
+        this.all = [];
+      }
+    });
   }
 
   get filtered(): Complaint[] {
@@ -469,4 +482,35 @@ export class ComplaintHistoryComponent {
 
   setActiveStatus(value: string) { this.activeStatus = value; }
   setSelectedComplaint(c: Complaint | null) { this.selectedComplaint = c; }
+
+  private toComplaint(response: ComplaintResponse): Complaint {
+    const status = this.toComplaintStatus(response.status);
+    return {
+      id: String(response.id),
+      ticketNo: `GRV-${String(response.id).padStart(6, '0')}`,
+      title: response.title,
+      description: response.description,
+      category: 'Others',
+      status,
+      priority: response.priority,
+      citizenId: String(response.citizenId),
+      citizenName: response.citizenName,
+      assignedOfficerId: response.assignedOfficerId ? String(response.assignedOfficerId) : undefined,
+      assignedOfficerName: response.assignedOfficerName,
+      latitude: response.latitude,
+      longitude: response.longitude,
+      createdAt: response.createdAt,
+      updatedAt: response.createdAt,
+      resolvedAt: status === 'resolved' ? response.createdAt : undefined,
+      timeline: [],
+    };
+  }
+
+  private toComplaintStatus(status: string): ComplaintStatus {
+    const normalized = status.toLowerCase();
+    if (normalized === 'pending') return 'pending';
+    if (normalized === 'in_progress') return 'in-progress';
+    if (normalized === 'resolved') return 'resolved';
+    return 'open';
+  }
 }

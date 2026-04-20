@@ -522,12 +522,16 @@ export class LoginComponent {
     this.loading = true;
     this.errorMsg = '';
 
-    setTimeout(() => {
-      const { role, email, password } = this.loginForm.value;
-      const result = this.auth.login(email, password, role);
-      if (!result.success) this.errorMsg = result.message;
-      this.loading = false;
-    }, 800);
+    const { role, email, password } = this.loginForm.value;
+    this.auth.login(email, password, role).subscribe({
+      next: () => {
+        this.loading = false;
+      },
+      error: (err: Error) => {
+        this.errorMsg = err.message || 'Unable to login. Please try again.';
+        this.loading = false;
+      }
+    });
   }
 
   togglePwd() {

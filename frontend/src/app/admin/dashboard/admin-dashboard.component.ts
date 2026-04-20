@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { MockDataService } from '../../core/services/mock-data.service';
+import { ComplaintResponse, ComplaintService } from '../../core/services/complaint.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -20,7 +21,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
         <nav class="nav-menu">
           <div class="nav-section-title">Overview</div>
           <a routerLink="/admin/dashboard" class="nav-item active"><span class="nav-icon">📊</span> Dashboard</a>
-          <a href="#" class="nav-item"><span class="nav-icon">📋</span> All Complaints <span class="badge-count">{{ totalComplaints }}</span></a>
+          <a routerLink="/admin/all-complaints" class="nav-item"><span class="nav-icon">📋</span> All Complaints <span class="badge-count">{{ totalComplaints }}</span></a>
           <a href="#" class="nav-item"><span class="nav-icon">👥</span> Citizens</a>
           <a href="#" class="nav-item"><span class="nav-icon">👮</span> Officers</a>
           <div class="nav-section-title">Management</div>
@@ -62,13 +63,13 @@ import { MockDataService } from '../../core/services/mock-data.service';
           </div>
           <div class="kpi-card green">
             <div class="kpi-icon">✅</div>
-            <div class="kpi-num">48,329</div>
+            <div class="kpi-num">{{ resolvedComplaints.length.toLocaleString() }}</div>
             <div class="kpi-label">Resolved Complaints</div>
             <div class="kpi-trend">↑ 8% vs last month</div>
           </div>
           <div class="kpi-card yellow">
             <div class="kpi-icon">⏳</div>
-            <div class="kpi-num">3,241</div>
+            <div class="kpi-num">{{ pendingComplaints.length.toLocaleString() }}</div>
             <div class="kpi-label">Pending Resolution</div>
             <div class="kpi-trend">↓ 5% vs last month</div>
           </div>
@@ -394,11 +395,20 @@ import { MockDataService } from '../../core/services/mock-data.service';
   `]
 })
 export class AdminDashboardComponent {
+  complaints: ComplaintResponse[] = [];
   departments = this.mockData.departments;
   officers    = this.mockData.officers;
 
   get totalComplaints() {
-    return this.departments.reduce((sum, d) => sum + d.totalComplaints, 0);
+    return this.complaints.length;
+  }
+
+  get pendingComplaints() {
+    return this.complaints.filter(c => c.status === 'PENDING');
+  }
+
+  get resolvedComplaints() {
+    return this.complaints.filter(c => c.status === 'RESOLVED');
   }
 
   activities = [
@@ -410,7 +420,21 @@ export class AdminDashboardComponent {
     { icon: '📊', msg: 'Monthly report for February generated', time: '3 hrs ago' },
   ];
 
-  constructor(public auth: AuthService, private mockData: MockDataService) {}
+  constructor(
+    public auth: AuthService,
+    private mockData: MockDataService,
+    private complaintService: ComplaintService
+  ) {
+    this.complaintService.getAllComplaints().subscribe({
+      next: (complaints) => {
+        this.complaints = complaints;
+      },
+      error: (err) => {
+        console.error('Unable to load admin complaint stats', err);
+        this.complaints = [];
+      }
+    });
+  }
 
   getRate(d: any): number {
     return Math.round((d.resolved / d.totalComplaints) * 100);

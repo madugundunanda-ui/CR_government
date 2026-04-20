@@ -55,6 +55,10 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () => import('./admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
       },
+      {
+        path: 'all-complaints',
+        loadComponent: () => import('./admin/all-complaints/all-complaints.component').then(m => m.AdminAllComplaintsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
