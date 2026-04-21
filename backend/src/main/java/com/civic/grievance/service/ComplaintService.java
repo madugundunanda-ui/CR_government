@@ -1,9 +1,11 @@
 package com.civic.grievance.service;
 
+import com.civic.grievance.dto.ComplaintHistoryResponse;
 import com.civic.grievance.dto.ComplaintRequest;
 import com.civic.grievance.dto.ComplaintResponse;
 import com.civic.grievance.dto.UpdateStatusRequest;
 import com.civic.grievance.entity.Complaint;
+import com.civic.grievance.entity.ComplaintHistory;
 import com.civic.grievance.entity.Department;
 import com.civic.grievance.entity.User;
 import com.civic.grievance.entity.enums.Priority;
@@ -11,12 +13,14 @@ import com.civic.grievance.entity.enums.Role;
 import com.civic.grievance.entity.enums.Status;
 import com.civic.grievance.exception.BadRequestException;
 import com.civic.grievance.exception.ResourceNotFoundException;
+import com.civic.grievance.repository.ComplaintHistoryRepository;
 import com.civic.grievance.repository.ComplaintRepository;
 import com.civic.grievance.repository.DepartmentRepository;
 import com.civic.grievance.repository.SlaConfigRepository;
 import com.civic.grievance.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,10 +33,12 @@ public class ComplaintService {
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final SlaConfigRepository slaConfigRepository;
+    private final ComplaintHistoryRepository complaintHistoryRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final AuditLogService auditLogService;
 
+    @Transactional
     public ComplaintResponse createComplaint(ComplaintRequest request) {
         User citizen = userRepository.findById(request.getCitizenId())
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found: " + request.getCitizenId()));
@@ -87,6 +93,9 @@ public class ComplaintService {
 
         Complaint saved = complaintRepository.save(complaint);
 
+        // Record initial status in history
+        recordHistory(saved, citizen, null, initialStatus, "Complaint submitted by citizen");
+
         notificationService.notifyUser(citizen, "Complaint Submitted",
                 "Your complaint '" + saved.getTitle() + "' (GRV-" + saved.getId() + ") was received.", saved.getId());
 
@@ -115,6 +124,16 @@ public class ComplaintService {
         return complaintRepository.findByAssignedOfficer_Id(officerId).stream().map(this::mapToResponse).toList();
     }
 
+    public List<ComplaintResponse> getComplaintsByDepartment(Long departmentId) {
+        return complaintRepository.findByDepartment_Id(departmentId).stream().map(this::mapToResponse).toList();
+    }
+
+    public List<ComplaintHistoryResponse> getComplaintHistory(Long complaintId) {
+        return complaintHistoryRepository.findByComplaint_IdOrderByChangedAtAsc(complaintId)
+                .stream().map(this::mapHistoryToResponse).toList();
+    }
+
+    @Transactional
     public ComplaintResponse assignOfficer(Long complaintId, Long officerId) {
         Complaint complaint = findById(complaintId);
         User officer = userRepository.findById(officerId)
@@ -124,13 +143,24 @@ public class ComplaintService {
             throw new BadRequestException("User is not an OFFICER or SUPERVISOR");
         }
 
+        Status previousStatus = complaint.getStatus();
         complaint.setAssignedOfficer(officer);
         complaint.setStatus(Status.ASSIGNED);
+
+        // Auto-set department from officer's department if not already set
+        if (complaint.getDepartment() == null && officer.getDepartmentId() != null) {
+            departmentRepository.findById(officer.getDepartmentId())
+                    .ifPresent(complaint::setDepartment);
+        }
+
         Complaint saved = complaintRepository.save(complaint);
+
+        recordHistory(saved, officer, previousStatus, Status.ASSIGNED,
+                "Complaint assigned to officer " + officer.getName());
 
         notificationService.notifyUser(officer, "New Complaint Assigned",
                 "Complaint '" + saved.getTitle() + "' (GRV-" + saved.getId() + ") assigned to you.", saved.getId());
-        
+
         notificationService.notifyUser(saved.getCitizen(), "Officer Assigned",
                 "An officer has been assigned to your complaint '" + saved.getTitle() + "'.", saved.getId());
 
@@ -143,22 +173,47 @@ public class ComplaintService {
         return mapToResponse(saved);
     }
 
-    public ComplaintResponse updateStatus(Long complaintId, UpdateStatusRequest request, Long requestingOfficerId) {
+    @Transactional
+    public ComplaintResponse updateStatus(Long complaintId, UpdateStatusRequest request, Long requestingUserId) {
         Complaint complaint = findById(complaintId);
 
-        if (requestingOfficerId != null) {
-            if (complaint.getAssignedOfficer() == null ||
-                    !complaint.getAssignedOfficer().getId().equals(requestingOfficerId)) {
+        if (requestingUserId != null) {
+            // NPE fix: check assignedOfficer is not null before comparing
+            boolean isAssignedOfficer = complaint.getAssignedOfficer() != null
+                    && complaint.getAssignedOfficer().getId().equals(requestingUserId);
+            // Supervisor of same department can also update
+            User requestingUser = userRepository.findById(requestingUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            boolean isSupervisorOfDept = requestingUser.getRole() == Role.SUPERVISOR
+                    && complaint.getDepartment() != null
+                    && requestingUser.getDepartmentId() != null
+                    && requestingUser.getDepartmentId().equals(complaint.getDepartment().getId());
+
+            if (!isAssignedOfficer && !isSupervisorOfDept) {
                 throw new BadRequestException("You are not authorized to update this complaint");
             }
         }
 
+        Status previousStatus = complaint.getStatus();
         complaint.setStatus(request.getStatus());
+
+        // Persist officer remarks
+        if (request.getRemarks() != null && !request.getRemarks().isBlank()) {
+            complaint.setOfficerRemarks(request.getRemarks());
+        }
+
         if (request.getStatus() == Status.RESOLVED || request.getStatus() == Status.CLOSED) {
             complaint.setResolvedAt(LocalDateTime.now());
         }
-        
+
         Complaint saved = complaintRepository.save(complaint);
+
+        // Determine who made the change for history
+        User actor = requestingUserId != null
+                ? userRepository.findById(requestingUserId).orElse(null)
+                : null;
+
+        recordHistory(saved, actor, previousStatus, request.getStatus(), request.getRemarks());
 
         notificationService.notifyUser(saved.getCitizen(), "Complaint Status Updated",
                 "Your complaint '" + saved.getTitle() + "' is now: " + request.getStatus(), saved.getId());
@@ -167,18 +222,21 @@ public class ComplaintService {
                 saved.getId(), saved.getTitle(), request.getStatus().name());
 
         auditLogService.log("STATUS_CHANGED",
-                "Complaint GRV-" + saved.getId() + " status → " + request.getStatus(),
-                requestingOfficerId != null ? requestingOfficerId : 0L,
-                requestingOfficerId != null ? "Officer" : "Admin",
+                "Complaint GRV-" + saved.getId() + " status → " + request.getStatus()
+                        + (request.getRemarks() != null ? " | Remarks: " + request.getRemarks() : ""),
+                requestingUserId != null ? requestingUserId : 0L,
+                actor != null ? actor.getName() : "Admin",
                 saved.getId(), "COMPLAINT");
 
         return mapToResponse(saved);
     }
 
+    @Transactional
     public ComplaintResponse updateStatusByAdmin(Long complaintId, UpdateStatusRequest request) {
         return updateStatus(complaintId, request, null);
     }
 
+    @Transactional
     public void deleteDraftComplaintByCitizen(Long complaintId, Long citizenId) {
         Complaint complaint = findById(complaintId);
 
@@ -194,6 +252,20 @@ public class ComplaintService {
         auditLogService.log("COMPLAINT_DELETED",
                 "Citizen deleted draft complaint GRV-" + complaint.getId(),
                 citizenId, complaint.getCitizen().getName(), complaint.getId(), "COMPLAINT");
+    }
+
+    // ─── Private helpers ────────────────────────────────────────────────────────
+
+    private void recordHistory(Complaint complaint, User actor, Status from, Status to, String remarks) {
+        if (actor == null) return;
+        ComplaintHistory history = ComplaintHistory.builder()
+                .complaint(complaint)
+                .changedBy(actor)
+                .fromStatus(from)
+                .toStatus(to)
+                .remarks(remarks)
+                .build();
+        complaintHistoryRepository.save(history);
     }
 
     private Complaint findById(Long id) {
@@ -227,10 +299,27 @@ public class ComplaintService {
                 .latitude(c.getLatitude())
                 .longitude(c.getLongitude())
                 .address(c.getAddress())
+                .officerRemarks(c.getOfficerRemarks())
+                .escalated(c.isEscalated())
+                .slaBreachNotified(c.isSlaBreachNotified())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())
                 .slaDeadline(c.getSlaDeadline())
                 .resolvedAt(c.getResolvedAt())
+                .build();
+    }
+
+    private ComplaintHistoryResponse mapHistoryToResponse(ComplaintHistory h) {
+        return ComplaintHistoryResponse.builder()
+                .id(h.getId())
+                .complaintId(h.getComplaint().getId())
+                .changedById(h.getChangedBy().getId())
+                .changedByName(h.getChangedBy().getName())
+                .changedByRole(h.getChangedBy().getRole().name())
+                .fromStatus(h.getFromStatus())
+                .toStatus(h.getToStatus())
+                .remarks(h.getRemarks())
+                .changedAt(h.getChangedAt())
                 .build();
     }
 }

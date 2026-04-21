@@ -24,6 +24,17 @@ public class Department {
     @Column(length = 1000)
     private String description;
 
+    /** The user ID of the SUPERVISOR who heads this department. Nullable until assigned. */
+    @Column(name = "head_id")
+    private Long headId;
+
+    /** Name of the department head — denormalised for display performance */
+    @Column(name = "head_name")
+    private String headName;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

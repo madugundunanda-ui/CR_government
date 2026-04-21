@@ -76,15 +76,15 @@ import { UserRole } from '../../core/models/models';
             <div class="demo-box">
               <div class="demo-title">🔑 Demo Credentials</div>
               <div class="demo-grid">
-                <div class="demo-item" (click)="fillDemo('citizen')">
+                <div class="demo-item" (click)="fillDemo('CITIZEN')">
                   <span class="demo-role citizen">Citizen</span>
                   <span class="demo-email">citizen&#64;demo.com</span>
                 </div>
-                <div class="demo-item" (click)="fillDemo('officer')">
+                <div class="demo-item" (click)="fillDemo('OFFICER')">
                   <span class="demo-role officer">Officer</span>
                   <span class="demo-email">officer&#64;demo.com</span>
                 </div>
-                <div class="demo-item" (click)="fillDemo('admin')">
+                <div class="demo-item" (click)="fillDemo('ADMIN')">
                   <span class="demo-role admin">Admin</span>
                   <span class="demo-email">admin&#64;demo.com</span>
                 </div>
@@ -104,9 +104,9 @@ import { UserRole } from '../../core/models/models';
                 <select id="role" formControlName="role" class="form-control"
                   [class.is-invalid]="isInvalid('role')">
                   <option value="" disabled>Select your role</option>
-                  <option value="citizen">🏠 Citizen</option>
-                  <option value="officer">👮 Field Officer</option>
-                  <option value="admin">⚙️ Administrator</option>
+                  <option value="CITIZEN">🏠 Citizen</option>
+                  <option value="OFFICER">👮 Field Officer / Supervisor</option>
+                  <option value="ADMIN">⚙️ Administrator</option>
                 </select>
                 <span *ngIf="isInvalid('role')" class="error-message">Please select your role.</span>
               </div>
@@ -507,12 +507,13 @@ export class LoginComponent {
   }
 
   fillDemo(role: UserRole) {
-    const map: Record<UserRole, string> = {
-      citizen: 'citizen@demo.com',
-      officer: 'officer@demo.com',
-      admin: 'admin@demo.com',
+    const map: Record<string, string> = {
+      CITIZEN:    'citizen@demo.com',
+      OFFICER:    'officer@demo.com',
+      SUPERVISOR: 'supervisor.roads@demo.com',
+      ADMIN:      'admin@demo.com',
     };
-    this.loginForm.patchValue({ role, email: map[role], password: 'demo123' });
+    this.loginForm.patchValue({ role, email: map[role] ?? '', password: 'demo123' });
   }
 
   onSubmit() {

@@ -247,18 +247,19 @@ export class RaiseComplaintComponent {
   locationCaptured = false;
 
   categories = [
-    { value: 'ROADS_INFRASTRUCTURE', label: 'Roads & Infrastructure' },
-    { value: 'WATER_SANITATION', label: 'Water & Sanitation' },
+    { value: 'ROADS', label: 'Roads & Infrastructure' },
+    { value: 'WATER', label: 'Water & Sanitation' },
     { value: 'ELECTRICITY', label: 'Electricity' },
-    { value: 'SOLID_WASTE_MANAGEMENT', label: 'Solid Waste Management' },
-    { value: 'PARKS_RECREATION', label: 'Parks & Recreation' },
-    { value: 'HEALTH_SANITATION', label: 'Health & Sanitation' },
-    { value: 'TRAFFIC_TRANSPORT', label: 'Traffic & Transport' },
-    { value: 'BUILDING_TOWN_PLANNING', label: 'Building & Town Planning' },
+    { value: 'WASTE', label: 'Solid Waste Management' },
+    { value: 'PARKS', label: 'Parks & Recreation' },
+    { value: 'HEALTH', label: 'Health & Sanitation' },
+    { value: 'TRAFFIC', label: 'Traffic & Transport' },
+    { value: 'BUILDING', label: 'Building & Town Planning' },
     { value: 'PROPERTY_TAX', label: 'Property Tax' },
-    { value: 'STREET_LIGHTING', label: 'Street Lighting' },
+    { value: 'STREET_LIGHT', label: 'Street Lighting' },
     { value: 'OTHERS', label: 'Others' },
   ];
+
 
   slaData = [
     { dept: 'Water / Electricity', days: '24 hrs', level: 'fast' },

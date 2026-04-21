@@ -45,6 +45,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 // Admin-only
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // Supervisor — SUPERVISOR or ADMIN
+                .requestMatchers("/api/supervisor/**").hasAnyRole("SUPERVISOR", "ADMIN")
                 // Officer + Supervisor + Admin
                 .requestMatchers("/api/officer/**").hasAnyRole("OFFICER", "SUPERVISOR", "ADMIN")
                 // Citizen + Admin
@@ -54,7 +56,9 @@ public class SecurityConfig {
                 // All authenticated users
                 .requestMatchers("/api/notifications/**").authenticated()
                 .requestMatchers("/api/users/**").authenticated()
-                // Legacy complaint endpoints — keep for backward compat (Phase 2 migrates these)
+                // Complaint history — authenticated (officer/citizen/admin)
+                .requestMatchers(HttpMethod.GET, "/api/complaints/*/history").authenticated()
+                // Legacy complaint endpoints
                 .requestMatchers(HttpMethod.GET, "/api/complaints").hasAnyRole("ADMIN", "SUPERVISOR")
                 .requestMatchers(HttpMethod.POST, "/api/complaints").hasAnyRole("CITIZEN", "ADMIN")
                 .anyRequest().authenticated()
@@ -91,7 +95,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:4200",
+            "http://localhost:4201",
+            "http://localhost:4202"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -28,8 +28,12 @@ public class ComplaintResponse {
     private Double latitude;
     private Double longitude;
     private String address;
+    private String officerRemarks;
+    private boolean escalated;
+    private boolean slaBreachNotified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime slaDeadline;
     private LocalDateTime resolvedAt;
 }
+

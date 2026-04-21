@@ -6,10 +6,7 @@ import com.civic.grievance.entity.enums.Status;
 import com.civic.grievance.repository.ComplaintRepository;
 import com.civic.grievance.repository.UserRepository;
 import com.civic.grievance.entity.enums.Role;
-import com.civic.grievance.service.AuditLogService;
-import com.civic.grievance.service.ComplaintService;
-import com.civic.grievance.service.DepartmentService;
-import com.civic.grievance.service.UserService;
+import com.civic.grievance.service.*;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +55,11 @@ public class AdminController {
         return ResponseEntity.ok(complaintService.updateStatusByAdmin(id, request));
     }
 
+    @GetMapping("/complaints/{id}/history")
+    public ResponseEntity<List<ComplaintHistoryResponse>> getComplaintHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(complaintService.getComplaintHistory(id));
+    }
+
     // ─── Users ────────────────────────────────────────────────────────────────
 
     @GetMapping("/users")
@@ -96,6 +98,14 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.builder().message("Department deleted").build());
     }
 
+    /** Assign a supervisor/officer as the department head */
+    @PutMapping("/departments/{deptId}/head/{userId}")
+    public ResponseEntity<DepartmentResponse> assignDepartmentHead(
+            @PathVariable Long deptId,
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(departmentService.assignHead(deptId, userId));
+    }
+
     // ─── Reports / Stats ─────────────────────────────────────────────────────
 
     @GetMapping("/reports/stats")
@@ -109,10 +119,22 @@ public class AdminController {
                 .closed(complaintRepository.countByStatus(Status.CLOSED))
                 .highPriority(complaintRepository.countByPriority(com.civic.grievance.entity.enums.Priority.HIGH))
                 .urgentPriority(complaintRepository.countByPriority(com.civic.grievance.entity.enums.Priority.URGENT))
-                .totalCitizens(userRepository.findByRole(Role.CITIZEN).size())
-                .totalOfficers(userRepository.findByRole(Role.OFFICER).size())
+                .totalCitizens(userRepository.countByRole(Role.CITIZEN))
+                .totalOfficers(userRepository.countByRole(Role.OFFICER) + userRepository.countByRole(Role.SUPERVISOR))
                 .build();
         return ResponseEntity.ok(stats);
+    }
+
+    /** Real per-department stats replacing the former mock data */
+    @GetMapping("/reports/department-stats")
+    public ResponseEntity<List<DepartmentStatsResponse>> getDepartmentStats() {
+        return ResponseEntity.ok(departmentService.getDepartmentStats());
+    }
+
+    /** Officer performance analytics */
+    @GetMapping("/reports/officer-performance")
+    public ResponseEntity<List<OfficerPerformanceResponse>> getOfficerPerformance() {
+        return ResponseEntity.ok(userService.getOfficerPerformance());
     }
 
     // ─── Audit Logs ───────────────────────────────────────────────────────────
@@ -134,9 +156,9 @@ public class AdminController {
             complaintService.getAllComplaints();
 
         try (PrintWriter writer = response.getWriter()) {
-            writer.println("ID,Title,Status,Priority,Category,Citizen,Officer,Created,SLA Deadline");
+            writer.println("ID,Title,Status,Priority,Category,Citizen,Officer,Department,Created,SLA Deadline,Remarks");
             for (var c : complaints) {
-                writer.printf("%d,\"%s\",%s,%s,%s,\"%s\",\"%s\",%s,%s%n",
+                writer.printf("%d,\"%s\",%s,%s,%s,\"%s\",\"%s\",\"%s\",%s,%s,\"%s\"%n",
                     c.getId(),
                     c.getTitle().replace("\"", "\"\""),
                     c.getStatus(),
@@ -144,8 +166,10 @@ public class AdminController {
                     c.getCategory() != null ? c.getCategory() : "",
                     c.getCitizenName(),
                     c.getAssignedOfficerName() != null ? c.getAssignedOfficerName() : "Unassigned",
+                    c.getDepartmentName() != null ? c.getDepartmentName() : "",
                     c.getCreatedAt(),
-                    c.getSlaDeadline()
+                    c.getSlaDeadline(),
+                    c.getOfficerRemarks() != null ? c.getOfficerRemarks().replace("\"", "\"\"") : ""
                 );
             }
         }

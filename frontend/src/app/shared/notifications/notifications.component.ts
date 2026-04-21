@@ -111,14 +111,14 @@ export class NotificationsComponent implements OnInit {
 
     get dashboardRoute(): string {
         const r = this.auth.getRole();
-        if (r === 'admin') return '/admin/dashboard';
-        if (r === 'officer') return '/officer/dashboard';
+        if (r === 'ADMIN') return '/admin/dashboard';
+        if (r === 'OFFICER') return '/officer/dashboard';
         return '/citizen/dashboard';
     }
 
     get complaintRoute(): string {
         const r = this.auth.getRole();
-        if (r === 'officer') return '/officer/assigned-complaints';
+        if (r === 'OFFICER') return '/officer/assigned-complaints';
         return '/citizen/complaint-history';
     }
 

@@ -24,6 +24,14 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
     long countByPriority(Priority priority);
 
+    long countByDepartment_Id(Long departmentId);
+
+    long countByDepartment_IdAndStatus(Long departmentId, Status status);
+
+    long countByAssignedOfficer_Id(Long officerId);
+
+    long countByAssignedOfficer_IdAndStatus(Long officerId, Status status);
+
     @Query("SELECT c FROM Complaint c WHERE c.assignedOfficer IS NULL AND c.status = 'PENDING'")
     List<Complaint> findUnassignedPendingComplaints();
 }

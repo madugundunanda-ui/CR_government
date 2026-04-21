@@ -2,9 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
-import { MockDataService } from '../../core/services/mock-data.service';
 import { ComplaintService } from '../../core/services/complaint.service';
-import { ComplaintStatsResponse } from '../../core/models/models';
+import { AdminService } from '../../core/services/admin.service';
+import { ComplaintStatsResponse, DepartmentStatsResponse, OfficerPerformanceResponse } from '../../core/models/models';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -117,7 +117,7 @@ import { ComplaintStatsResponse } from '../../core/models/models';
         </div>
 
         <div class="admin-grid">
-          <!-- Department Performance (mock data for now — real analytics in Phase 4) -->
+          <!-- Department Performance (LIVE from DB) -->
           <div class="dept-panel">
             <div class="panel-header-row">
               <h3>Department Performance</h3>
@@ -129,17 +129,17 @@ import { ComplaintStatsResponse } from '../../core/models/models';
                   <tr>
                     <th>Department</th><th>Head</th>
                     <th>Total</th><th>Resolved</th><th>Pending</th>
-                    <th>Avg Days</th><th>Rate</th>
+                    <th>SLA Breach</th><th>Rate</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let d of departments">
-                    <td><strong>{{ d.name }}</strong></td>
-                    <td>{{ d.head }}</td>
-                    <td>{{ d.totalComplaints.toLocaleString() }}</td>
-                    <td style="color:var(--secondary); font-weight:600;">{{ d.resolved.toLocaleString() }}</td>
-                    <td style="color:var(--warning);">{{ d.pending.toLocaleString() }}</td>
-                    <td>{{ d.avgResolutionDays }}d</td>
+                  <tr *ngFor="let d of deptStats">
+                    <td><strong>{{ d.departmentName }}</strong></td>
+                    <td>{{ d.headName || '—' }}</td>
+                    <td>{{ d.totalComplaints }}</td>
+                    <td style="color:var(--secondary); font-weight:600;">{{ d.resolved + d.closed }}</td>
+                    <td style="color:var(--warning);">{{ d.pending }}</td>
+                    <td style="color:var(--danger);font-weight:600;">{{ d.slaBreached }}</td>
                     <td>
                       <div class="rate-bar-wrapper">
                         <div class="rate-bar">
@@ -151,6 +151,9 @@ import { ComplaintStatsResponse } from '../../core/models/models';
                       </div>
                     </td>
                   </tr>
+                  <tr *ngIf="!loading && deptStats.length === 0">
+                    <td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No department data yet.</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -158,10 +161,10 @@ import { ComplaintStatsResponse } from '../../core/models/models';
 
           <!-- Right Column -->
           <div class="admin-right">
-            <!-- Officers Table -->
+            <!-- Officers Performance Table (LIVE) -->
             <div class="card" style="margin-bottom:16px;">
               <div class="card-header">
-                <h4>Field Officers</h4>
+                <h4>Officer Performance</h4>
                 <a routerLink="/admin/officers" class="btn btn-primary btn-sm">Manage</a>
               </div>
               <div style="overflow-x:auto;">
@@ -169,30 +172,31 @@ import { ComplaintStatsResponse } from '../../core/models/models';
                   <thead>
                     <tr>
                       <th>Name</th><th>Dept.</th>
-                      <th>Open</th><th>Done</th><th>Status</th>
+                      <th>Total</th><th>Resolved</th><th>SLA%</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let o of officers">
+                    <tr *ngFor="let o of officerPerf">
                       <td>
                         <div class="officer-cell">
-                          <div class="oc-avatar">{{ o.name[0] }}</div>
+                          <div class="oc-avatar">{{ o.officerName[0] }}</div>
                           <div>
-                            <div class="oc-name">{{ o.name }}</div>
-                            <div class="oc-id">{{ o.employeeId }}</div>
+                            <div class="oc-name">{{ o.officerName }}</div>
+                            <div class="oc-id">{{ o.officerEmail }}</div>
                           </div>
                         </div>
                       </td>
-                      <td><span class="dept-chip">{{ o.department.split(' ')[0] }}</span></td>
-                      <td>{{ o.assignedComplaints }}</td>
-                      <td style="color:var(--secondary);font-weight:600;">{{ o.resolvedComplaints }}</td>
+                      <td><span class="dept-chip">{{ (o.departmentName || 'N/A').split(' ')[0] }}</span></td>
+                      <td>{{ o.totalAssigned }}</td>
+                      <td style="color:var(--secondary);font-weight:600;">{{ o.resolved + o.closed }}</td>
                       <td>
-                        <span class="status-dot"
-                          [class.active]="o.isActive"
-                          [class.inactive]="!o.isActive">
-                          {{ o.isActive ? 'Active' : 'Inactive' }}
+                        <span [style.color]="o.slaCompliancePct >= 85 ? 'var(--secondary)' : o.slaCompliancePct >= 70 ? '#f59e0b' : 'var(--danger)'" style="font-weight:700;">
+                          {{ o.slaCompliancePct }}%
                         </span>
                       </td>
+                    </tr>
+                    <tr *ngIf="officerPerf.length === 0">
+                      <td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;">No officers yet.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -323,33 +327,42 @@ import { ComplaintStatsResponse } from '../../core/models/models';
 })
 export class AdminDashboardComponent implements OnInit {
   stats: ComplaintStatsResponse | null = null;
-  departments = this.mockData.departments;
-  officers = this.mockData.officers;
+  deptStats: DepartmentStatsResponse[] = [];
+  officerPerf: OfficerPerformanceResponse[] = [];
+  loading = true;
 
   activities = [
-    { icon: '✅', msg: 'System started successfully', time: 'Just now' },
-    { icon: '📊', msg: 'Stats refreshed from database', time: '1 min ago' },
-    { icon: '🏢', msg: 'Departments seeded on startup', time: '2 min ago' },
+    { icon: '✅', msg: 'System operational — all services running', time: 'Just now' },
+    { icon: '📊', msg: 'Live stats loaded from database', time: '1 min ago' },
+    { icon: '🏢', msg: 'Department analytics refreshed', time: '2 min ago' },
   ];
 
   constructor(
     public auth: AuthService,
-    private mockData: MockDataService,
-    private complaintService: ComplaintService
+    private complaintService: ComplaintService,
+    private adminService: AdminService
   ) { }
 
   ngOnInit(): void {
     this.complaintService.getStats().subscribe({
-      next: (s) => this.stats = s,
+      next: (s) => { this.stats = s; },
       error: (err) => console.error('Stats load failed', err)
+    });
+    this.adminService.getDepartmentStats().subscribe({
+      next: (d) => { this.deptStats = d; this.loading = false; },
+      error: () => { this.loading = false; }
+    });
+    this.adminService.getOfficerPerformance().subscribe({
+      next: (o) => this.officerPerf = o,
+      error: () => {}
     });
   }
 
-  getRate(d: any): number {
-    return Math.round((d.resolved / d.totalComplaints) * 100);
+  getRate(d: DepartmentStatsResponse): number {
+    return d.resolutionRatePct;
   }
-  getRateClass(d: any): string {
-    const r = this.getRate(d);
+  getRateClass(d: DepartmentStatsResponse): string {
+    const r = d.resolutionRatePct;
     if (r >= 85) return 'high';
     if (r >= 70) return 'medium';
     return 'low';

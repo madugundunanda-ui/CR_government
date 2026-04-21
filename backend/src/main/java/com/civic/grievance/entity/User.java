@@ -34,10 +34,17 @@ public class User {
 
     private String contactNumber;
 
-    @Column(nullable = false)
+    @Column
     private String address;
 
-    // false for OFFICER accounts until admin approves; true for all others
+    /**
+     * For OFFICER and SUPERVISOR roles: which department they belong to.
+     * For SUPERVISOR: this is the department they head.
+     */
+    @Column(name = "department_id")
+    private Long departmentId;
+
+    // false for OFFICER/SUPERVISOR accounts until admin approves; true for all others
     @Builder.Default
     @Column(name = "approved", nullable = false)
     private boolean approved = true;
@@ -50,7 +57,7 @@ public class User {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
-        // Officers must be approved by admin before they can log in
+        // Officers/Supervisors must be approved by admin before they can log in
         if (role == Role.OFFICER || role == Role.SUPERVISOR) {
             // Keep whatever was set (false by default via builder)
         } else {

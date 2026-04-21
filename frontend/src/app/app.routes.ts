@@ -20,7 +20,7 @@ export const routes: Routes = [
   {
     path: 'citizen',
     canActivate: [authGuard],
-    data: { role: 'citizen' },
+    data: { role: 'CITIZEN' },
     children: [
       { path: 'dashboard', loadComponent: () => import('./citizen/dashboard/citizen-dashboard.component').then(m => m.CitizenDashboardComponent) },
       { path: 'raise-complaint', loadComponent: () => import('./citizen/raise-complaint/raise-complaint.component').then(m => m.RaiseComplaintComponent) },
@@ -31,7 +31,7 @@ export const routes: Routes = [
   {
     path: 'officer',
     canActivate: [authGuard],
-    data: { role: 'officer' },
+    data: { role: 'OFFICER' },
     children: [
       { path: 'dashboard', loadComponent: () => import('./officer/dashboard/officer-dashboard.component').then(m => m.OfficerDashboardComponent) },
       { path: 'assigned-complaints', loadComponent: () => import('./officer/assigned-complaints/assigned-complaints.component').then(m => m.AssignedComplaintsComponent) },
@@ -41,7 +41,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [authGuard],
-    data: { role: 'admin' },
+    data: { role: 'ADMIN' },
     children: [
       { path: 'dashboard', loadComponent: () => import('./admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
       { path: 'all-complaints', loadComponent: () => import('./admin/all-complaints/all-complaints.component').then(m => m.AdminAllComplaintsComponent) },

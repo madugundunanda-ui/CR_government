@@ -167,8 +167,8 @@ export class ProfileComponent implements OnInit {
 
     get dashboardRoute(): string {
         const role = this.auth.getRole();
-        if (role === 'admin') return '/admin/dashboard';
-        if (role === 'officer') return '/officer/dashboard';
+        if (role === 'ADMIN') return '/admin/dashboard';
+        if (role === 'OFFICER') return '/officer/dashboard';
         return '/citizen/dashboard';
     }
 

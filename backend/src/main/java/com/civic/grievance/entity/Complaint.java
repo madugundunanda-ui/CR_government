@@ -56,6 +56,24 @@ public class Complaint {
     @Column(length = 500)
     private String address;
 
+    /** Officer's public remarks/notes saved on each status update */
+    @Column(name = "officer_remarks", length = 1000)
+    private String officerRemarks;
+
+    /** Internal admin/supervisor notes (not visible to citizen) */
+    @Column(name = "internal_notes", length = 1000)
+    private String internalNotes;
+
+    /** True once complaint has been auto-escalated due to SLA breach */
+    @Builder.Default
+    @Column(name = "escalated", nullable = false)
+    private boolean escalated = false;
+
+    /** Prevents duplicate SLA breach notifications from hourly scheduler */
+    @Builder.Default
+    @Column(name = "sla_breach_notified", nullable = false)
+    private boolean slaBreachNotified = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

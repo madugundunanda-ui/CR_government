@@ -31,15 +31,16 @@ import { NotificationService } from '../../../core/services/notification.service
           <li><a href="#about" (click)="closeMenu()">About</a></li>
           <li><a href="#features" (click)="closeMenu()">Services</a></li>
           <ng-container *ngIf="auth.isLoggedIn()">
-            <ng-container *ngIf="auth.getRole() === 'citizen'">
+            <ng-container *ngIf="auth.getRole() === 'CITIZEN'">
               <li><a routerLink="/citizen/dashboard" routerLinkActive="active">Dashboard</a></li>
               <li><a routerLink="/citizen/raise-complaint" routerLinkActive="active">Raise Complaint</a></li>
               <li><a routerLink="/citizen/complaint-history" routerLinkActive="active">My Complaints</a></li>
             </ng-container>
-            <ng-container *ngIf="auth.getRole() === 'officer'">
+            <ng-container *ngIf="auth.getRole() === 'OFFICER' || auth.getRole() === 'SUPERVISOR'">
               <li><a routerLink="/officer/dashboard" routerLinkActive="active">Officer Dashboard</a></li>
+              <li><a routerLink="/officer/assigned-complaints" routerLinkActive="active">Assigned</a></li>
             </ng-container>
-            <ng-container *ngIf="auth.getRole() === 'admin'">
+            <ng-container *ngIf="auth.getRole() === 'ADMIN'">
               <li><a routerLink="/admin/dashboard" routerLinkActive="active">Admin Panel</a></li>
             </ng-container>
           </ng-container>

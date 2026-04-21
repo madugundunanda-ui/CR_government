@@ -18,5 +18,8 @@ public class UserResponse {
     private String contactNumber;
     private String address;
     private boolean approved;
+    private Long departmentId;
+    private String departmentName;
     private LocalDateTime createdAt;
 }
+
