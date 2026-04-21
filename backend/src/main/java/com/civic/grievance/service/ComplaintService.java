@@ -46,7 +46,7 @@ public class ComplaintService {
             assignedOfficer = userRepository.findById(request.getAssignedOfficerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Officer not found: " + request.getAssignedOfficerId()));
             if (assignedOfficer.getRole() != Role.OFFICER && assignedOfficer.getRole() != Role.SUPERVISOR) {
-                throw new BadRequestException("Assigned user must be an OFFICER or SUPERVISOR");
+                throw new BadRequestException("Assigned user must be OFFICER or SUPERVISOR");
             }
         }
 
@@ -56,13 +56,14 @@ public class ComplaintService {
                     .orElseThrow(() -> new ResourceNotFoundException("Department not found: " + request.getDepartmentId()));
         }
 
-        // Calculate SLA deadline based on config, fallback to 24h
         int slaHours = 24;
         if (request.getCategory() != null && request.getPriority() != null) {
-            slaHours = slaConfigRepository.findByCategoryAndPriority(
-                    request.getCategory(), request.getPriority())
+            slaHours = slaConfigRepository
+                    .findByCategoryAndPriority(request.getCategory(), request.getPriority())
                     .map(c -> c.getResolutionTimeHours())
                     .orElse(getDefaultSlaHours(request.getPriority()));
+        } else if (request.getPriority() != null) {
+            slaHours = getDefaultSlaHours(request.getPriority());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -86,17 +87,14 @@ public class ComplaintService {
 
         Complaint saved = complaintRepository.save(complaint);
 
-        // Notify citizen
         notificationService.notifyUser(citizen, "Complaint Submitted",
-                "Your complaint '" + saved.getTitle() + "' (ID: GRV-" + saved.getId() + ") has been received.", saved.getId());
+                "Your complaint '" + saved.getTitle() + "' (GRV-" + saved.getId() + ") was received.", saved.getId());
 
-        // Email citizen
-        emailService.sendComplaintSubmitted(
-            citizen.getEmail(), citizen.getName(), saved.getId(), saved.getTitle());
-        // Audit
+        emailService.sendComplaintSubmitted(citizen.getEmail(), citizen.getName(), saved.getId(), saved.getTitle());
+
         auditLogService.log("COMPLAINT_CREATED",
-            "Citizen " + citizen.getName() + " raised complaint: " + saved.getTitle(),
-            citizen.getId(), citizen.getName(), saved.getId(), "COMPLAINT");
+                "Citizen " + citizen.getName() + " raised: " + saved.getTitle(),
+                citizen.getId(), citizen.getName(), saved.getId(), "COMPLAINT");
 
         return mapToResponse(saved);
     }
@@ -114,38 +112,36 @@ public class ComplaintService {
     }
 
     public ComplaintResponse assignOfficer(Long complaintId, Long officerId) {
-        Complaint complaint = findComplaintById(complaintId);
+        Complaint complaint = findById(complaintId);
         User officer = userRepository.findById(officerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Officer not found: " + officerId));
 
         if (officer.getRole() != Role.OFFICER && officer.getRole() != Role.SUPERVISOR) {
-            throw new BadRequestException("User is not an officer or supervisor");
+            throw new BadRequestException("User is not an OFFICER or SUPERVISOR");
         }
 
         complaint.setAssignedOfficer(officer);
         complaint.setStatus(Status.ASSIGNED);
         Complaint saved = complaintRepository.save(complaint);
 
-        // Notify officer
         notificationService.notifyUser(officer, "New Complaint Assigned",
-                "Complaint '" + saved.getTitle() + "' (ID: GRV-" + saved.getId() + ") has been assigned to you.", saved.getId());
-        // Notify citizen
+                "Complaint '" + saved.getTitle() + "' (GRV-" + saved.getId() + ") assigned to you.", saved.getId());
+        
         notificationService.notifyUser(saved.getCitizen(), "Officer Assigned",
                 "An officer has been assigned to your complaint '" + saved.getTitle() + "'.", saved.getId());
 
-        emailService.sendOfficerAssigned(
-            officer.getEmail(), officer.getName(), saved.getId(), saved.getTitle());
+        emailService.sendOfficerAssigned(officer.getEmail(), officer.getName(), saved.getId(), saved.getTitle());
+
         auditLogService.log("OFFICER_ASSIGNED",
-            "Officer " + officer.getName() + " assigned to GRV-" + saved.getId(),
-            officer.getId(), officer.getName(), saved.getId(), "COMPLAINT");
+                "Officer " + officer.getName() + " assigned to GRV-" + saved.getId(),
+                officer.getId(), officer.getName(), saved.getId(), "COMPLAINT");
 
         return mapToResponse(saved);
     }
 
     public ComplaintResponse updateStatus(Long complaintId, UpdateStatusRequest request, Long requestingOfficerId) {
-        Complaint complaint = findComplaintById(complaintId);
+        Complaint complaint = findById(complaintId);
 
-        // Officers can only update complaints assigned to them
         if (requestingOfficerId != null) {
             if (complaint.getAssignedOfficer() == null ||
                     !complaint.getAssignedOfficer().getId().equals(requestingOfficerId)) {
@@ -157,20 +153,20 @@ public class ComplaintService {
         if (request.getStatus() == Status.RESOLVED || request.getStatus() == Status.CLOSED) {
             complaint.setResolvedAt(LocalDateTime.now());
         }
+        
         Complaint saved = complaintRepository.save(complaint);
 
-        // Notify citizen of status change
         notificationService.notifyUser(saved.getCitizen(), "Complaint Status Updated",
-                "Your complaint '" + saved.getTitle() + "' status is now: " + request.getStatus(), saved.getId());
+                "Your complaint '" + saved.getTitle() + "' is now: " + request.getStatus(), saved.getId());
 
-        emailService.sendStatusUpdate(
-            saved.getCitizen().getEmail(), saved.getCitizen().getName(),
-            saved.getId(), saved.getTitle(), request.getStatus().name());
+        emailService.sendStatusUpdate(saved.getCitizen().getEmail(), saved.getCitizen().getName(),
+                saved.getId(), saved.getTitle(), request.getStatus().name());
+
         auditLogService.log("STATUS_CHANGED",
-            "Complaint GRV-" + saved.getId() + " status → " + request.getStatus(),
-            requestingOfficerId != null ? requestingOfficerId : 0L,
-            requestingOfficerId != null ? "Officer" : "Admin",
-            saved.getId(), "COMPLAINT");
+                "Complaint GRV-" + saved.getId() + " status → " + request.getStatus(),
+                requestingOfficerId != null ? requestingOfficerId : 0L,
+                requestingOfficerId != null ? "Officer" : "Admin",
+                saved.getId(), "COMPLAINT");
 
         return mapToResponse(saved);
     }
@@ -179,7 +175,7 @@ public class ComplaintService {
         return updateStatus(complaintId, request, null);
     }
 
-    private Complaint findComplaintById(Long id) {
+    private Complaint findById(Long id) {
         return complaintRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Complaint not found: " + id));
     }
@@ -187,9 +183,9 @@ public class ComplaintService {
     private int getDefaultSlaHours(Priority priority) {
         return switch (priority) {
             case URGENT -> 4;
-            case HIGH -> 24;
+            case HIGH   -> 24;
             case MEDIUM -> 72;
-            case LOW -> 168;
+            case LOW    -> 168;
         };
     }
 
