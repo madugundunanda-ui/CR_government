@@ -152,7 +152,7 @@ import { RouterLink } from '@angular/router';
   `,
   styles: [`
     .footer {
-      background: var(--bg-dark);
+      background: var(--bg-dark, #0f172a);
       color: rgba(255,255,255,0.75);
       font-size: 0.875rem;
     }
