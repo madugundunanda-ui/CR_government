@@ -133,6 +133,10 @@ public class ComplaintService {
                 .stream().map(this::mapHistoryToResponse).toList();
     }
 
+    public ComplaintResponse getComplaintById(Long complaintId) {
+        return mapToResponse(findById(complaintId));
+    }
+
     @Transactional
     public ComplaintResponse assignOfficer(Long complaintId, Long officerId) {
         Complaint complaint = findById(complaintId);

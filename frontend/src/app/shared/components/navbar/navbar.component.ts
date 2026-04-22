@@ -36,9 +36,12 @@ import { NotificationService } from '../../../core/services/notification.service
               <li><a routerLink="/citizen/raise-complaint" routerLinkActive="active">Raise Complaint</a></li>
               <li><a routerLink="/citizen/complaint-history" routerLinkActive="active">My Complaints</a></li>
             </ng-container>
-            <ng-container *ngIf="auth.getRole() === 'OFFICER' || auth.getRole() === 'SUPERVISOR'">
+            <ng-container *ngIf="auth.getRole() === 'OFFICER'">
               <li><a routerLink="/officer/dashboard" routerLinkActive="active">Officer Dashboard</a></li>
               <li><a routerLink="/officer/assigned-complaints" routerLinkActive="active">Assigned</a></li>
+            </ng-container>
+            <ng-container *ngIf="auth.getRole() === 'SUPERVISOR'">
+              <li><a routerLink="/supervisor/dashboard" routerLinkActive="active">Supervisor Dashboard</a></li>
             </ng-container>
             <ng-container *ngIf="auth.getRole() === 'ADMIN'">
               <li><a routerLink="/admin/dashboard" routerLinkActive="active">Admin Panel</a></li>

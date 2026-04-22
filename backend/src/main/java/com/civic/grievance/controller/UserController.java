@@ -36,6 +36,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(
                 user.getId(),
                 body.get("name"),
+            body.get("email"),
                 body.get("contactNumber"),
                 body.get("address")));
     }

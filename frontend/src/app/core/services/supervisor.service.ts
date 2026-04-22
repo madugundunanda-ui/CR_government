@@ -5,7 +5,8 @@ import { environment } from '../../../environments/environment';
 import {
   DepartmentStatsResponse,
   OfficerPerformanceResponse,
-  ComplaintHistoryResponse
+  ComplaintHistoryResponse,
+  UserResponse
 } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
@@ -24,6 +25,10 @@ export class SupervisorService {
 
   getDepartmentOfficers(): Observable<OfficerPerformanceResponse[]> {
     return this.http.get<OfficerPerformanceResponse[]>(`${this.base}/department/officers`);
+  }
+
+  getDepartmentOfficerUsers(): Observable<UserResponse[]> {
+    return this.http.get<UserResponse[]>(`${this.base}/department/officer-users`);
   }
 
   reassignComplaint(complaintId: number, officerId: number): Observable<any> {

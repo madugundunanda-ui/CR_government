@@ -16,7 +16,7 @@ export class UserService {
             .pipe(catchError(err => throwError(() => err)));
     }
 
-    updateProfile(data: { name?: string; contactNumber?: string; address?: string }): Observable<UserResponse> {
+    updateProfile(data: { name?: string; email?: string; contactNumber?: string; address?: string }): Observable<UserResponse> {
         return this.http.put<UserResponse>(`${this.base}/users/me`, data)
             .pipe(catchError(err => throwError(() => err)));
     }
@@ -35,6 +35,45 @@ export class UserService {
 
     approveOfficer(userId: number): Observable<UserResponse> {
         return this.http.put<UserResponse>(`${this.base}/admin/users/${userId}/approve`, {})
+            .pipe(catchError(err => throwError(() => err)));
+    }
+
+    updateOfficerByAdmin(userId: number, data: {
+        name?: string;
+        email?: string;
+        contactNumber?: string;
+        address?: string;
+        departmentId?: number;
+        role?: 'OFFICER' | 'SUPERVISOR';
+        approved?: boolean;
+    }): Observable<UserResponse> {
+        return this.http.put<UserResponse>(`${this.base}/admin/users/${userId}`, data)
+            .pipe(catchError(err => throwError(() => err)));
+    }
+
+    updateCitizenByAdmin(userId: number, data: {
+        name?: string;
+        email?: string;
+        contactNumber?: string;
+        address?: string;
+        approved?: boolean;
+    }): Observable<UserResponse> {
+        return this.http.put<UserResponse>(`${this.base}/admin/users/${userId}`, data)
+            .pipe(catchError(err => throwError(() => err)));
+    }
+
+    getDepartmentOfficerUsersBySupervisor(): Observable<UserResponse[]> {
+        return this.http.get<UserResponse[]>(`${this.base}/supervisor/department/officer-users`)
+            .pipe(catchError(err => throwError(() => err)));
+    }
+
+    updateOfficerBySupervisor(userId: number, data: {
+        name?: string;
+        email?: string;
+        contactNumber?: string;
+        address?: string;
+    }): Observable<UserResponse> {
+        return this.http.put<UserResponse>(`${this.base}/supervisor/officers/${userId}`, data)
             .pipe(catchError(err => throwError(() => err)));
     }
 }

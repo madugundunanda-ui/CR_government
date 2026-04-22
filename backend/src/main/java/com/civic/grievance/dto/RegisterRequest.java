@@ -28,4 +28,8 @@ public class RegisterRequest {
 
     @NotBlank(message = "Address is required")
     private String address;
+
+    private String identityType;
+
+    private String identityNumber;
 }

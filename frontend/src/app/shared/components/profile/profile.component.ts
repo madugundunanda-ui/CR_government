@@ -59,10 +59,9 @@ import { UserResponse } from '../../../core/models/models';
                 <input type="text" formControlName="name" class="form-control" placeholder="Your full name"/>
               </div>
               <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" [value]="profile.email" class="form-control" disabled
-                  style="background:var(--bg-muted); cursor:not-allowed;"/>
-                <span class="hint">Email cannot be changed.</span>
+                <label>Email Address <span class="required">*</span></label>
+                <input type="email" formControlName="email" class="form-control" placeholder="your@email.com"/>
+                <span class="hint">Changing email affects your login username.</span>
               </div>
             </div>
             <div class="form-row">
@@ -148,6 +147,7 @@ export class ProfileComponent implements OnInit {
     ) {
         this.profileForm = this.fb.group({
             name: ['', Validators.required],
+          email: ['', [Validators.required, Validators.email]],
             contactNumber: [''],
             address: ['', Validators.required],
         });
@@ -158,7 +158,7 @@ export class ProfileComponent implements OnInit {
         this.userService.getProfile().subscribe({
             next: (p) => {
                 this.profile = p;
-                this.profileForm.patchValue({ name: p.name, contactNumber: p.contactNumber, address: p.address });
+              this.profileForm.patchValue({ name: p.name, email: p.email, contactNumber: p.contactNumber, address: p.address });
                 this.loading = false;
             },
             error: () => { this.error = 'Failed to load profile.'; this.loading = false; }
@@ -168,6 +168,7 @@ export class ProfileComponent implements OnInit {
     get dashboardRoute(): string {
         const role = this.auth.getRole();
         if (role === 'ADMIN') return '/admin/dashboard';
+        if (role === 'SUPERVISOR') return '/supervisor/dashboard';
         if (role === 'OFFICER') return '/officer/dashboard';
         return '/citizen/dashboard';
     }
@@ -193,7 +194,7 @@ export class ProfileComponent implements OnInit {
 
     resetForm(): void {
         if (this.profile) {
-            this.profileForm.patchValue({ name: this.profile.name, contactNumber: this.profile.contactNumber, address: this.profile.address });
+          this.profileForm.patchValue({ name: this.profile.name, email: this.profile.email, contactNumber: this.profile.contactNumber, address: this.profile.address });
         }
     }
 

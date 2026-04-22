@@ -19,6 +19,8 @@ export interface LoginRequest { email: string; password: string; }
 export interface RegisterRequest {
   name: string; email: string; password: string;
   role: UserRole; contactNumber?: string; address: string;
+  identityType?: string;
+  identityNumber?: string;
 }
 export interface AuthResponse {
   message: string; token?: string;
@@ -76,7 +78,7 @@ export class AuthService {
         const routes: Record<UserRole, string> = {
           CITIZEN:    '/citizen/dashboard',
           OFFICER:    '/officer/dashboard',
-          SUPERVISOR: '/officer/dashboard',
+          SUPERVISOR: '/supervisor/dashboard',
           ADMIN:      '/admin/dashboard',
         };
         this.router.navigate([routes[res.role]]);

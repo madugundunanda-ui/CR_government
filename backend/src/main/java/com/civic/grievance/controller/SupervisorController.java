@@ -63,6 +63,25 @@ public class SupervisorController {
         return ResponseEntity.ok(userService.getOfficerPerformanceByDepartment(deptId));
     }
 
+    /** Basic officer user details in supervisor's department for management/editing */
+    @GetMapping("/department/officer-users")
+    public ResponseEntity<List<UserResponse>> getDepartmentOfficerUsers(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User supervisor = resolveUser(userDetails);
+        Long deptId = getDepartmentId(supervisor);
+        return ResponseEntity.ok(userService.getOfficerUsersByDepartment(deptId));
+    }
+
+    /** Supervisor can edit officers in own department (no cross-department move) */
+    @PutMapping("/officers/{id}")
+    public ResponseEntity<UserResponse> updateOfficerBySupervisor(
+            @PathVariable Long id,
+            @RequestBody OfficerManagementRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User supervisor = resolveUser(userDetails);
+        return ResponseEntity.ok(userService.updateOfficerBySupervisor(supervisor.getId(), id, request));
+    }
+
     /** Supervisor can reassign a complaint within their department */
     @PutMapping("/complaints/{id}/assign")
     public ResponseEntity<ComplaintResponse> reassignComplaint(
@@ -71,6 +90,11 @@ public class SupervisorController {
             @AuthenticationPrincipal UserDetails userDetails) {
         User supervisor = resolveUser(userDetails);
         Long deptId = getDepartmentId(supervisor);
+
+        ComplaintResponse complaint = complaintService.getComplaintById(id);
+        if (complaint.getDepartmentId() == null || !deptId.equals(complaint.getDepartmentId())) {
+            throw new BadRequestException("You can reassign only complaints in your department");
+        }
 
         // Validate target officer is in same department
         User targetOfficer = userRepository.findById(request.getOfficerId())

@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../core/services/user.service';
-import { UserResponse } from '../../core/models/models';
+import { DepartmentResponse, UserResponse } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
+import { DepartmentService } from '../../core/services/department.service';
 
 @Component({
     selector: 'app-officers',
@@ -95,7 +96,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="table-wrapper" *ngIf="filteredOfficers.length > 0">
             <table>
               <thead>
-                <tr><th>Name</th><th>Email</th><th>Contact</th><th>Address</th><th>Status</th><th>Registered</th></tr>
+                <tr><th>Name</th><th>Email</th><th>Contact</th><th>Address</th><th>Status</th><th>Registered</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let o of filteredOfficers">
@@ -120,9 +121,56 @@ import { AuthService } from '../../core/services/auth.service';
                     </span>
                   </td>
                   <td style="font-size:0.78rem; color:var(--text-muted);">{{ o.createdAt | date:'dd MMM yy' }}</td>
+                  <td>
+                    <button class="btn btn-outline btn-sm" (click)="openEditOfficer(o)">Edit</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div *ngIf="editingOfficer" class="form-card" style="margin-top:14px;">
+            <h4>Edit Officer</h4>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div class="form-group">
+                <label>Name</label>
+                <input class="form-control" [(ngModel)]="officerEdit.name" />
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input class="form-control" [(ngModel)]="officerEdit.email" />
+              </div>
+              <div class="form-group">
+                <label>Contact</label>
+                <input class="form-control" [(ngModel)]="officerEdit.contactNumber" />
+              </div>
+              <div class="form-group">
+                <label>Role</label>
+                <select class="form-control" [(ngModel)]="officerEdit.role">
+                  <option value="OFFICER">OFFICER</option>
+                  <option value="SUPERVISOR">SUPERVISOR</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Department</label>
+                <select class="form-control" [(ngModel)]="officerEdit.departmentId">
+                  <option [ngValue]="undefined">Unassigned</option>
+                  <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:24px;">
+                <input type="checkbox" [(ngModel)]="officerEdit.approved" id="approvedChk" />
+                <label for="approvedChk">Approved</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Address</label>
+              <textarea class="form-control" [(ngModel)]="officerEdit.address" rows="2"></textarea>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-primary btn-sm" (click)="saveOfficerEdit()">Save</button>
+              <button class="btn btn-outline btn-sm" (click)="cancelOfficerEdit()">Cancel</button>
+            </div>
           </div>
         </div>
       </main>
@@ -167,23 +215,47 @@ export class OfficersComponent implements OnInit {
     activeTab = 'all';
     searchQ = '';
     approvingId: number | null = null;
+    departments: DepartmentResponse[] = [];
+    editingOfficer: UserResponse | null = null;
+    officerEdit: {
+        name: string;
+        email: string;
+        contactNumber?: string;
+        address?: string;
+        departmentId?: number;
+        role: 'OFFICER' | 'SUPERVISOR';
+        approved?: boolean;
+    } = { name: '', email: '', role: 'OFFICER' };
 
-    constructor(public auth: AuthService, private userService: UserService) { }
+    constructor(
+      public auth: AuthService,
+      private userService: UserService,
+      private departmentService: DepartmentService
+    ) { }
 
     ngOnInit(): void { this.loadData(); }
 
     loadData(): void {
         this.loading = true;
-        this.userService.getUsersByRole('OFFICER').subscribe({
-            next: (list) => {
-                this.officers = list;
-                this.userService.getPendingOfficers().subscribe({
-                    next: (pending) => { this.pendingOfficers = pending; this.loading = false; },
-                    error: () => this.loading = false
-                });
+      this.departmentService.getAll().subscribe({
+        next: (depts) => this.departments = depts,
+        error: () => this.departments = []
+      });
+      this.userService.getUsersByRole('OFFICER').subscribe({
+        next: (officers) => {
+          this.userService.getUsersByRole('SUPERVISOR').subscribe({
+            next: (supervisors) => {
+              this.officers = [...officers, ...supervisors];
+              this.userService.getPendingOfficers().subscribe({
+                next: (pending) => { this.pendingOfficers = pending; this.loading = false; },
+                error: () => this.loading = false
+              });
             },
             error: () => { this.error = 'Failed to load officers.'; this.loading = false; }
-        });
+          });
+        },
+        error: () => { this.error = 'Failed to load officers.'; this.loading = false; }
+      });
     }
 
     get filteredOfficers(): UserResponse[] {
@@ -203,5 +275,36 @@ export class OfficersComponent implements OnInit {
             },
             error: () => this.approvingId = null
         });
+    }
+
+    openEditOfficer(o: UserResponse): void {
+      this.editingOfficer = o;
+      this.officerEdit = {
+        name: o.name,
+        email: o.email,
+        contactNumber: o.contactNumber,
+        address: o.address,
+        departmentId: o.departmentId,
+        role: o.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OFFICER',
+        approved: o.approved,
+      };
+    }
+
+    cancelOfficerEdit(): void {
+      this.editingOfficer = null;
+      this.officerEdit = { name: '', email: '', role: 'OFFICER' };
+    }
+
+    saveOfficerEdit(): void {
+      if (!this.editingOfficer) return;
+      this.userService.updateOfficerByAdmin(this.editingOfficer.id, this.officerEdit).subscribe({
+        next: () => {
+          this.cancelOfficerEdit();
+          this.loadData();
+        },
+        error: (err) => {
+          this.error = err?.error?.message || 'Failed to update officer.';
+        }
+      });
     }
 }

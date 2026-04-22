@@ -17,6 +17,8 @@ public class UserResponse {
     private Role role;
     private String contactNumber;
     private String address;
+    private String identityType;
+    private String identityNumber;
     private boolean approved;
     private Long departmentId;
     private String departmentName;

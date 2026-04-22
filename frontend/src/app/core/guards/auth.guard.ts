@@ -6,7 +6,7 @@ import { UserRole } from '../models/models';
 const ROLE_ROUTES: Record<UserRole, string> = {
   CITIZEN:    '/citizen/dashboard',
   OFFICER:    '/officer/dashboard',
-  SUPERVISOR: '/officer/dashboard',
+  SUPERVISOR: '/supervisor/dashboard',
   ADMIN:      '/admin/dashboard',
 };
 

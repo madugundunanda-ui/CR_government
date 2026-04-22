@@ -13,6 +13,8 @@ export interface UserResponse {
   role: UserRole;
   contactNumber?: string;
   address?: string;
+  identityType?: string;
+  identityNumber?: string;
   approved: boolean;
   departmentId?: number;
   departmentName?: string;

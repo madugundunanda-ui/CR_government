@@ -156,14 +156,27 @@ function passwordMatchValidator(control: AbstractControl) {
                   <label for="idType">ID Proof Type <span class="required">*</span></label>
                   <select id="idType" formControlName="idType" class="form-control" [class.is-invalid]="isInvalid('idType')">
                     <option value="" disabled>Select ID type</option>
-                    <option>Aadhar Card</option>
-                    <option>Voter ID</option>
-                    <option>PAN Card</option>
-                    <option>Driving Licence</option>
-                    <option>Passport</option>
+                    <option value="AADHAAR">Aadhaar</option>
+                    <option value="VOTER_ID">Voter ID</option>
+                    <option value="PAN">PAN</option>
+                    <option value="DRIVING_LICENSE">Driving Licence</option>
+                    <option value="PASSPORT">Passport</option>
                   </select>
                   <span *ngIf="isInvalid('idType')" class="error-message">Please select your ID type.</span>
                 </div>
+              </div>
+
+              <div class="form-group">
+                <label for="idNumber">Identity Number <span class="required">*</span></label>
+                <input
+                  id="idNumber"
+                  type="text"
+                  formControlName="idNumber"
+                  class="form-control"
+                  [placeholder]="idNumberPlaceholder()"
+                  [class.is-invalid]="isInvalid('idNumber')"
+                />
+                <span *ngIf="isInvalid('idNumber')" class="error-message">{{ idNumberErrorMessage() }}</span>
               </div>
 
               <div class="section-divider">
@@ -444,10 +457,71 @@ export class RegisterComponent {
       address: ['', Validators.required],
       ward: ['', Validators.required],
       idType: ['', Validators.required],
+      idNumber: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
       consent: [false, Validators.requiredTrue],
     }, { validators: passwordMatchValidator });
+
+    this.registerForm.get('idType')?.valueChanges.subscribe(() => {
+      this.applyIdentityValidators();
+    });
+    this.applyIdentityValidators();
+  }
+
+  private applyIdentityValidators(): void {
+    const idType = this.registerForm.get('idType')?.value;
+    const idCtrl = this.registerForm.get('idNumber');
+    if (!idCtrl) return;
+
+    const pattern = this.getIdentityPattern(idType);
+    idCtrl.setValidators(pattern ? [Validators.required, Validators.pattern(pattern)] : [Validators.required]);
+    idCtrl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private getIdentityPattern(idType: string): RegExp | null {
+    switch (idType) {
+      case 'AADHAAR':
+        return /^\d{12}$/;
+      case 'PAN':
+        return /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+      case 'VOTER_ID':
+        return /^[A-Z]{3}[0-9]{7}$/;
+      case 'DRIVING_LICENSE':
+        return /^[A-Z0-9]{10,18}$/;
+      case 'PASSPORT':
+        return /^[A-Z][0-9]{7}$/;
+      default:
+        return null;
+    }
+  }
+
+  idNumberPlaceholder(): string {
+    const idType = this.registerForm.get('idType')?.value;
+    switch (idType) {
+      case 'AADHAAR':
+        return '12-digit Aadhaar number';
+      case 'PAN':
+        return 'ABCDE1234F';
+      case 'VOTER_ID':
+        return 'ABC1234567';
+      case 'DRIVING_LICENSE':
+        return 'Driving licence number';
+      case 'PASSPORT':
+        return 'A1234567';
+      default:
+        return 'Enter identity number';
+    }
+  }
+
+  idNumberErrorMessage(): string {
+    const idType = this.registerForm.get('idType')?.value;
+    if (idType === 'AADHAAR') return 'Aadhaar must be exactly 12 digits.';
+    if (idType === 'PAN') return 'PAN must be in format ABCDE1234F.';
+    if (idType === 'VOTER_ID') return 'Voter ID must be in format ABC1234567.';
+    if (idType === 'DRIVING_LICENSE') return 'Driving licence should be 10-18 alphanumeric characters.';
+    if (idType === 'PASSPORT') return 'Passport must be in format A1234567.';
+    return 'Please enter a valid identity number.';
   }
 
   isInvalid(field: string): boolean {
@@ -483,7 +557,7 @@ export class RegisterComponent {
     this.errorMsg = '';
     this.successMsg = '';
 
-    const { fullName, email, phone, address, password, role } = this.registerForm.value;
+    const { fullName, email, phone, address, password, role, idType, idNumber } = this.registerForm.value;
     this.auth.register({
       name: fullName,
       email,
@@ -491,6 +565,8 @@ export class RegisterComponent {
       contactNumber: phone,
       address,
       role: role || 'CITIZEN',
+      identityType: idType,
+      identityNumber: idNumber,
     }).subscribe({
       next: (res) => {
         // Show appropriate message based on role

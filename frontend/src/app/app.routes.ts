@@ -37,6 +37,15 @@ export const routes: Routes = [
       { path: 'assigned-complaints', loadComponent: () => import('./officer/assigned-complaints/assigned-complaints.component').then(m => m.AssignedComplaintsComponent) },
     ],
   },
+  // ─── Supervisor ─────────────────────────────────────────────────────────────
+  {
+    path: 'supervisor',
+    canActivate: [authGuard],
+    data: { role: 'SUPERVISOR' },
+    children: [
+      { path: 'dashboard', loadComponent: () => import('./supervisor/dashboard/supervisor-dashboard.component').then(m => m.SupervisorDashboardComponent) },
+    ],
+  },
   // ─── Admin ──────────────────────────────────────────────────────────────────
   {
     path: 'admin',

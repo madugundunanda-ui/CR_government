@@ -2,7 +2,9 @@ package com.civic.grievance.controller;
 
 import com.civic.grievance.dto.*;
 import com.civic.grievance.dto.AuditLogResponse;
+import com.civic.grievance.entity.User;
 import com.civic.grievance.entity.enums.Status;
+import com.civic.grievance.exception.ResourceNotFoundException;
 import com.civic.grievance.repository.ComplaintRepository;
 import com.civic.grievance.repository.UserRepository;
 import com.civic.grievance.entity.enums.Role;
@@ -12,6 +14,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -74,8 +78,25 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/approve")
-    public ResponseEntity<UserResponse> approveOfficer(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.approveOfficer(id));
+    public ResponseEntity<UserResponse> approveOfficer(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User admin = resolveUser(userDetails);
+        return ResponseEntity.ok(userService.approveOfficer(admin.getId(), admin.getName(), id));
+    }
+
+    @PutMapping("/users/{id}")
+    public ResponseEntity<UserResponse> updateOfficerByAdmin(
+            @PathVariable Long id,
+            @RequestBody OfficerManagementRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User admin = resolveUser(userDetails);
+        return ResponseEntity.ok(userService.updateOfficerByAdmin(admin.getId(), admin.getName(), id, request));
+    }
+
+    private User resolveUser(UserDetails userDetails) {
+        return userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     // ─── Departments ─────────────────────────────────────────────────────────

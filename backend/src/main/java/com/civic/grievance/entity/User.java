@@ -37,6 +37,14 @@ public class User {
     @Column
     private String address;
 
+    /** Document type used for citizen identity verification (e.g., AADHAAR, PAN). */
+    @Column(name = "identity_type", length = 32)
+    private String identityType;
+
+    /** Masked/validated identity number provided by citizen during registration. */
+    @Column(name = "identity_number", length = 32)
+    private String identityNumber;
+
     /**
      * For OFFICER and SUPERVISOR roles: which department they belong to.
      * For SUPERVISOR: this is the department they head.
