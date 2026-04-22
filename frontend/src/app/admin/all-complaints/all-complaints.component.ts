@@ -1,205 +1,222 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ComplaintResponse, ComplaintService } from '../../core/services/complaint.service';
 import { UserResponse } from '../../core/models/models';
 import { UserService } from '../../core/services/user.service';
+import { AuthService } from '../../core/services/auth.service';
+import { AdminLayoutComponent } from '../../shared/components/admin-layout/admin-layout.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-admin-all-complaints',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, AdminLayoutComponent],
   template: `
-    <div class="page-header">
-      <div class="container">
-        <div class="breadcrumb">
-          <a routerLink="/admin/dashboard">Dashboard</a>
-          <span>›</span><span>All Complaints</span>
+  <app-admin-layout active="complaints">
+    <div class="page-wrap">
+      <!-- Header -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Complaints Management</h2>
+          <p>Assign officers, update statuses, and manage civic grievances.</p>
         </div>
-        <h1>All Complaints</h1>
-        <p>Manage, assign and update all civic complaints.</p>
-      </div>
-    </div>
-
-    <div class="container" style="padding-top:28px; padding-bottom:48px;">
-      <!-- Summary -->
-      <div class="summary-row">
-        <div class="summary-card"><div class="summary-num">{{ complaints.length }}</div><div class="summary-label">Total</div></div>
-        <div class="summary-card"><div class="summary-num">{{ count('PENDING') }}</div><div class="summary-label">Pending</div></div>
-        <div class="summary-card"><div class="summary-num">{{ count('ASSIGNED') }}</div><div class="summary-label">Assigned</div></div>
-        <div class="summary-card"><div class="summary-num">{{ count('IN_PROGRESS') }}</div><div class="summary-label">In Progress</div></div>
-        <div class="summary-card"><div class="summary-num">{{ count('RESOLVED') + count('CLOSED') }}</div><div class="summary-label">Resolved</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" (click)="loadData()">Refresh</button>
+        </div>
       </div>
 
-      <!-- Filters -->
-      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; align-items:center;">
-        <input [(ngModel)]="searchQ" placeholder="Search title or ID..." class="form-control" style="max-width:240px;"/>
-        <select [(ngModel)]="filterStatus" class="form-control" style="max-width:160px;">
-          <option value="all">All Statuses</option>
+      <!-- Alerts -->
+      <div *ngIf="successMsg" class="alert alert-success">{{ successMsg }}</div>
+      <div *ngIf="error"      class="alert alert-danger">{{ error }}</div>
+
+      <!-- Summary strip -->
+      <div class="kpi-row" style="margin-bottom:14px;">
+        <div class="kpi-card" [class.kpi-blue]="filterStatus===''" (click)="setFilter('')" style="cursor:pointer;">
+          <div class="kpi-num">{{ complaints.length }}</div>
+          <div class="kpi-label">Total</div>
+        </div>
+        <div class="kpi-card" [class.kpi-amber]="filterStatus==='PENDING'" (click)="setFilter('PENDING')" style="cursor:pointer;">
+          <div class="kpi-num">{{ count('PENDING') }}</div>
+          <div class="kpi-label">Pending</div>
+        </div>
+        <div class="kpi-card" (click)="setFilter('ASSIGNED')" style="cursor:pointer;" [class.kpi-blue]="filterStatus==='ASSIGNED'">
+          <div class="kpi-num">{{ count('ASSIGNED') }}</div>
+          <div class="kpi-label">Assigned</div>
+        </div>
+        <div class="kpi-card" (click)="setFilter('IN_PROGRESS')" style="cursor:pointer;" [class.kpi-amber]="filterStatus==='IN_PROGRESS'">
+          <div class="kpi-num">{{ count('IN_PROGRESS') }}</div>
+          <div class="kpi-label">In Progress</div>
+        </div>
+        <div class="kpi-card" [class.kpi-green]="filterStatus==='RESOLVED'" (click)="setFilter('RESOLVED')" style="cursor:pointer;">
+          <div class="kpi-num">{{ count('RESOLVED') + count('CLOSED') }}</div>
+          <div class="kpi-label">Resolved / Closed</div>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input class="form-control" style="max-width:240px;" [(ngModel)]="searchQ" placeholder="Search by title, ID or citizen…" />
+        <select class="form-control" style="width:auto;" [(ngModel)]="filterStatus">
+          <option value="">All Statuses</option>
           <option value="PENDING">Pending</option>
           <option value="ASSIGNED">Assigned</option>
           <option value="IN_PROGRESS">In Progress</option>
           <option value="RESOLVED">Resolved</option>
           <option value="CLOSED">Closed</option>
         </select>
-        <select [(ngModel)]="filterPriority" class="form-control" style="max-width:160px;">
-          <option value="all">All Priorities</option>
+        <select class="form-control" style="width:auto;" [(ngModel)]="filterPriority">
+          <option value="">All Priorities</option>
           <option value="URGENT">Urgent</option>
           <option value="HIGH">High</option>
           <option value="MEDIUM">Medium</option>
           <option value="LOW">Low</option>
         </select>
-        <button class="btn btn-outline btn-sm" (click)="loadData()">🔄 Refresh</button>
+        <span class="text-muted" style="font-size:0.75rem;margin-left:auto;">{{ filtered.length }} record(s)</span>
       </div>
 
-      <div *ngIf="loading" style="text-align:center; padding:40px;"><div class="spinner"></div></div>
-      <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+      <!-- Loading -->
+      <div *ngIf="loading" class="loading-row"><div class="spinner"></div></div>
 
-      <div *ngIf="!loading" class="table-wrapper">
+      <!-- Table -->
+      <div *ngIf="!loading" class="table-container">
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>Title</th><th>Citizen</th>
-              <th>Priority</th><th>Status</th><th>Officer</th>
-              <th>Created</th><th>Actions</th>
+              <th style="width:72px;">Ref. No.</th>
+              <th>Title / Category</th>
+              <th>Citizen</th>
+              <th>Department</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>SLA Date</th>
+              <th>Filed On</th>
+              <th style="text-align:right;width:80px;">Action</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let c of filtered">
-              <td><code>GRV-{{ c.id }}</code></td>
+              <td style="font-size:0.7rem;font-weight:700;color:var(--text-500);">GRV-{{ c.id }}</td>
               <td>
-                <div style="font-weight:600; font-size:0.875rem; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                  {{ c.title }}
-                </div>
-                <div style="font-size:0.7rem; color:var(--text-muted);">{{ c.category || 'Others' }}</div>
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-900);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.title }}</div>
+                <div style="font-size:0.67rem;color:var(--text-500);">{{ c.category || 'General' }}</div>
               </td>
-              <td style="font-size:0.82rem;">{{ c.citizenName }}</td>
+              <td style="font-size:0.78rem;">{{ c.citizenName }}</td>
+              <td style="font-size:0.78rem;color:var(--text-500);">{{ c.departmentName || '—' }}</td>
               <td><span class="badge badge-{{ c.priority }}">{{ c.priority }}</span></td>
-              <td>
-                <select class="inline-select badge badge-{{ c.status }}"
-                  [value]="c.status"
-                  (change)="onStatusChange(c, $any($event.target).value)">
-                  <option value="PENDING">Pending</option>
-                  <option value="ASSIGNED">Assigned</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="RESOLVED">Resolved</option>
-                  <option value="CLOSED">Closed</option>
-                </select>
+              <td><span class="badge badge-{{ c.status }}">{{ formatStatus(c.status) }}</span></td>
+              <td style="font-size:0.78rem;">
+                <span *ngIf="c.assignedOfficerName" class="fw-600 text-success">{{ c.assignedOfficerName }}</span>
+                <span *ngIf="!c.assignedOfficerName" class="text-muted">Unassigned</span>
               </td>
-              <td style="font-size:0.82rem;">
-                <div *ngIf="c.assignedOfficerName" style="color:var(--secondary); font-weight:600;">
-                  {{ c.assignedOfficerName }}
-                </div>
-                <div *ngIf="!c.assignedOfficerName" style="color:var(--text-light);">Unassigned</div>
+              <td style="font-size:0.72rem;"
+                [class.text-danger]="isSlaBreached(c)"
+                [class.fw-600]="isSlaBreached(c)">
+                {{ c.slaDeadline ? (c.slaDeadline | date:'dd/MM/yy') : '—' }}
+                <span *ngIf="isSlaBreached(c)" style="font-size:0.62rem;">&nbsp;&#9888;</span>
               </td>
-              <td style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap;">{{ c.createdAt | date:'dd MMM yy' }}</td>
-              <td>
-                <button class="btn btn-outline btn-sm" (click)="openAssign(c)">
-                  {{ c.assignedOfficerName ? '🔄 Reassign' : '👮 Assign' }}
-                </button>
+              <td style="font-size:0.72rem;color:var(--text-500);">{{ c.createdAt | date:'dd/MM/yy' }}</td>
+              <td style="text-align:right;">
+                <button class="btn btn-ghost btn-xs" (click)="openAssign(c)" id="assign-{{ c.id }}">Assign</button>
               </td>
+            </tr>
+            <tr *ngIf="filtered.length === 0">
+              <td colspan="10" class="text-muted" style="text-align:center;padding:32px;font-size:0.8rem;">No complaints match the current filters.</td>
             </tr>
           </tbody>
         </table>
-        <div *ngIf="filtered.length === 0" style="padding:32px; text-align:center; color:var(--text-muted);">
-          No complaints found matching the current filters.
+        <div class="table-footer">
+          <span>Showing {{ filtered.length }} of {{ complaints.length }} complaints</span>
         </div>
       </div>
     </div>
+  </app-admin-layout>
 
-    <!-- Assign Officer Modal -->
-    <div *ngIf="assignTarget" class="modal-backdrop" (click)="assignTarget = null">
-      <div class="modal-box" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div>
-            <h3>Assign Officer</h3>
-            <div style="font-size:0.82rem; color:var(--text-muted);">{{ assignTarget!.title }}</div>
+  <!-- Assign Officer Modal -->
+  <div class="modal-overlay" *ngIf="assignTarget" (click)="assignTarget = null">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h4>{{ assignTarget!.assignedOfficerName ? 'Reassign Officer' : 'Assign Officer' }} — GRV-{{ assignTarget!.id }}</h4>
+        <button class="modal-close-btn" (click)="assignTarget = null">&#215;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:var(--th-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px;font-size:0.78rem;">
+          <div class="fw-600 text-900">{{ assignTarget!.title }}</div>
+          <div class="text-muted" style="margin-top:3px;">
+            Status: <span class="badge badge-{{ assignTarget!.status }}">{{ formatStatus(assignTarget!.status) }}</span>
+            &nbsp; Priority: <span class="badge badge-{{ assignTarget!.priority }}">{{ assignTarget!.priority }}</span>
           </div>
-          <button class="modal-close" (click)="assignTarget = null">✕</button>
+          <div *ngIf="assignTarget!.assignedOfficerName" class="text-muted" style="margin-top:4px;">
+            Currently assigned to: <strong>{{ assignTarget!.assignedOfficerName }}</strong>
+          </div>
         </div>
-        <div class="modal-body">
-          <div class="modal-section">
-            <div class="ms-label">Current Officer</div>
-            <div class="ms-value">{{ assignTarget!.assignedOfficerName || 'None' }}</div>
-          </div>
-          <div class="modal-section">
-            <div class="ms-label">Select New Officer</div>
-            <div *ngIf="officers.length === 0" style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">
-              No officers available. Register officers first from Admin → Officers.
+
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-500);margin-bottom:8px;">Select Officer</div>
+
+        <div *ngIf="officers.length === 0" class="text-muted" style="font-size:0.78rem;padding:12px 0;">
+          No approved officers available. Go to Officers &rarr; approve registrations first.
+        </div>
+
+        <div class="officer-select-list">
+          <div *ngFor="let o of officers"
+            class="officer-row"
+            [class.selected]="selectedOfficerId === o.id"
+            (click)="selectedOfficerId = o.id">
+            <div class="user-avatar" style="width:28px;height:28px;font-size:0.68rem;">{{ o.name[0] }}</div>
+            <div>
+              <div class="or-name">{{ o.name }}</div>
+              <div class="or-email">{{ o.email }}&nbsp;·&nbsp;{{ o.departmentName || 'No dept.' }}</div>
             </div>
-            <div class="officer-list">
-              <div *ngFor="let o of officers" class="officer-option"
-                [class.selected]="selectedOfficerId === o.id"
-                (click)="selectedOfficerId = o.id">
-                <div class="oo-avatar">{{ o.name[0] }}</div>
-                <div>
-                  <div style="font-weight:600; font-size:0.875rem;">{{ o.name }}</div>
-                  <div style="font-size:0.72rem; color:var(--text-muted);">{{ o.email }}</div>
-                </div>
-                <div *ngIf="selectedOfficerId === o.id" style="margin-left:auto; color:var(--secondary);">✓</div>
-              </div>
-            </div>
+            <span *ngIf="selectedOfficerId === o.id" class="or-check">&#10003;</span>
           </div>
-          <div *ngIf="assignError" class="alert alert-danger">{{ assignError }}</div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline btn-sm" (click)="assignTarget = null">Cancel</button>
-          <button class="btn btn-primary btn-sm" [disabled]="!selectedOfficerId || assigning" (click)="confirmAssign()">
-            {{ assigning ? 'Assigning...' : 'Confirm Assignment' }}
-          </button>
-        </div>
+
+        <div *ngIf="assignError" class="alert alert-danger" style="margin-top:10px;">{{ assignError }}</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-sm" (click)="assignTarget = null">Cancel</button>
+        <button class="btn btn-primary btn-sm" [disabled]="!selectedOfficerId || assigning" (click)="confirmAssign()">
+          {{ assigning ? 'Assigning…' : 'Confirm' }}
+        </button>
       </div>
     </div>
-  `,
-  styles: [`
-    .summary-row { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:20px;
-      @media (max-width:900px) { grid-template-columns:repeat(3,1fr); }
-      @media (max-width:480px) { grid-template-columns:1fr; } }
-    .summary-card { background:white; border:1px solid var(--border); border-radius:var(--radius-md); padding:18px; }
-    .summary-num   { font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1; margin-bottom:4px; }
-    .summary-label { font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
-    .table-wrapper { background:white; border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; }
-    .inline-select { border:none; background:transparent; cursor:pointer; font-family:var(--font); font-size:0.75rem;
-      font-weight:600; padding:3px 6px; border-radius:20px; }
-    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000;
-      display:flex; align-items:center; justify-content:center; padding:24px; }
-    .modal-box { background:white; border-radius:var(--radius-xl); width:100%; max-width:480px; max-height:80vh;
-      display:flex; flex-direction:column; box-shadow:var(--shadow-xl);
-      .modal-header { display:flex; align-items:flex-start; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border);
-        h3 { font-size:1.1rem; margin:0 0 4px; } .modal-close { background:var(--bg-muted); border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; } }
-      .modal-body { padding:20px 24px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px; }
-      .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; background:var(--bg-muted); } }
-    .modal-section { .ms-label { font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px; }
-      .ms-value { font-size:0.875rem; color:var(--text-secondary); } }
-    .officer-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:260px; overflow-y:auto; }
-    .officer-option { display:flex; align-items:center; gap:12px; padding:12px; border:1.5px solid var(--border);
-      border-radius:var(--radius); cursor:pointer; transition:all 0.15s;
-      &:hover { border-color:var(--primary); background:#f0f4ff; }
-      &.selected { border-color:var(--secondary); background:#f0fdf4; }
-      .oo-avatar { width:32px; height:32px; border-radius:50%; background:var(--primary); color:white;
-        display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.82rem; flex-shrink:0; } }
-  `]
+  </div>
+  `
 })
-export class AdminAllComplaintsComponent implements OnInit {
+export class AdminAllComplaintsComponent implements OnInit, OnDestroy {
   complaints: ComplaintResponse[] = [];
   officers: UserResponse[] = [];
   loading = false;
   error = '';
+  successMsg = '';
   searchQ = '';
-  filterStatus = 'all';
-  filterPriority = 'all';
+  filterStatus = '';
+  filterPriority = '';
   assignTarget: ComplaintResponse | null = null;
   selectedOfficerId: number | null = null;
   assigning = false;
   assignError = '';
+  private routeSub?: Subscription;
 
   constructor(
+    public auth: AuthService,
     private complaintService: ComplaintService,
-    private userService: UserService
-  ) { }
+    private userService: UserService,
+    private route: ActivatedRoute
+  ) {}
 
-  ngOnInit(): void { this.loadData(); }
+  ngOnInit(): void {
+    // Honor query-param filters from dashboard links
+    this.routeSub = this.route.queryParams.subscribe(p => {
+      if (p['status'])   this.filterStatus   = p['status'];
+      if (p['priority']) this.filterPriority = p['priority'];
+    });
+    this.loadData();
+  }
+
+  ngOnDestroy(): void { this.routeSub?.unsubscribe(); }
 
   loadData(): void {
     this.loading = true;
@@ -208,34 +225,37 @@ export class AdminAllComplaintsComponent implements OnInit {
       next: (list) => { this.complaints = list; this.loading = false; },
       error: () => { this.error = 'Failed to load complaints.'; this.loading = false; }
     });
+    // Load officers for assignment (only approved)
     this.userService.getUsersByRole('OFFICER').subscribe({
-      next: (list) => { this.officers = list.filter(o => o.approved); },
-      error: () => { }
+      next: (list) => {
+        this.userService.getUsersByRole('SUPERVISOR').subscribe({
+          next: (sv) => { this.officers = [...list, ...sv].filter(o => o.approved); },
+          error: () => { this.officers = list.filter(o => o.approved); }
+        });
+      },
+      error: () => {}
     });
   }
 
+  setFilter(status: string): void { this.filterStatus = status; }
+
   get filtered(): ComplaintResponse[] {
     return this.complaints.filter(c => {
-      const s = this.filterStatus === 'all' || c.status === this.filterStatus;
-      const p = this.filterPriority === 'all' || c.priority === this.filterPriority;
+      const s = !this.filterStatus   || c.status   === this.filterStatus;
+      const p = !this.filterPriority || c.priority === this.filterPriority;
       const q = !this.searchQ ||
         c.title.toLowerCase().includes(this.searchQ.toLowerCase()) ||
-        String(c.id).includes(this.searchQ);
+        String(c.id).includes(this.searchQ) ||
+        (c.citizenName || '').toLowerCase().includes(this.searchQ.toLowerCase());
       return s && p && q;
     });
   }
 
   count(status: string): number { return this.complaints.filter(c => c.status === status).length; }
 
-  onStatusChange(c: ComplaintResponse, newStatus: string): void {
-    if (newStatus === c.status) return;
-    this.complaintService.updateComplaintStatus(c.id, newStatus).subscribe({
-      next: (updated) => {
-        const idx = this.complaints.findIndex(x => x.id === updated.id);
-        if (idx !== -1) this.complaints[idx] = updated;
-      },
-      error: (err) => alert(err?.error?.message || 'Status update failed.')
-    });
+  isSlaBreached(c: ComplaintResponse): boolean {
+    if (!c.slaDeadline || c.status === 'RESOLVED' || c.status === 'CLOSED') return false;
+    return new Date(c.slaDeadline) < new Date();
   }
 
   openAssign(c: ComplaintResponse): void {
@@ -254,6 +274,8 @@ export class AdminAllComplaintsComponent implements OnInit {
         if (idx !== -1) this.complaints[idx] = updated;
         this.assignTarget = null;
         this.assigning = false;
+        this.successMsg = 'Officer assigned successfully.';
+        setTimeout(() => this.successMsg = '', 3000);
       },
       error: (err) => {
         this.assignError = err?.error?.message || 'Assignment failed.';

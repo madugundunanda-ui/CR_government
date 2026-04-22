@@ -13,8 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 
 /**
@@ -120,6 +123,38 @@ public class SupervisorController {
     @GetMapping("/complaints/{id}/history")
     public ResponseEntity<List<ComplaintHistoryResponse>> getComplaintHistory(@PathVariable Long id) {
         return ResponseEntity.ok(complaintService.getComplaintHistory(id));
+    }
+
+    /** Export department complaints as CSV */
+    @GetMapping("/department/export-csv")
+    public void exportDepartmentComplaintsCsv(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletResponse response) throws IOException {
+        User supervisor = resolveUser(userDetails);
+        Long deptId = getDepartmentId(supervisor);
+
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=\"department_complaints.csv\"");
+
+        List<ComplaintResponse> complaints = complaintService.getComplaintsByDepartment(deptId);
+
+        try (PrintWriter writer = response.getWriter()) {
+            writer.println("ID,Title,Status,Priority,Category,Citizen,Officer,Created,SLA Deadline,Remarks");
+            for (var c : complaints) {
+                writer.printf("%d,\"%s\",%s,%s,%s,\"%s\",\"%s\",%s,%s,\"%s\"%n",
+                    c.getId(),
+                    c.getTitle() != null ? c.getTitle().replace("\"", "\"\"") : "",
+                    c.getStatus(),
+                    c.getPriority(),
+                    c.getCategory() != null ? c.getCategory() : "",
+                    c.getCitizenName(),
+                    c.getAssignedOfficerName() != null ? c.getAssignedOfficerName() : "Unassigned",
+                    c.getCreatedAt(),
+                    c.getSlaDeadline(),
+                    c.getOfficerRemarks() != null ? c.getOfficerRemarks().replace("\"", "\"\"") : ""
+                );
+            }
+        }
     }
 
     private User resolveUser(UserDetails userDetails) {

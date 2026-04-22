@@ -42,4 +42,8 @@ export class SupervisorService {
   getComplaintHistory(complaintId: number): Observable<ComplaintHistoryResponse[]> {
     return this.http.get<ComplaintHistoryResponse[]>(`${this.base}/complaints/${complaintId}/history`);
   }
+
+  getExportCsvUrl(): string {
+    return `${this.base}/department/export-csv`;
+  }
 }

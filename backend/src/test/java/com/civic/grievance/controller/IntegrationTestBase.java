@@ -4,6 +4,7 @@ import com.civic.grievance.config.TestSecurityConfig;
 import com.civic.grievance.entity.User;
 import com.civic.grievance.entity.enums.Role;
 import com.civic.grievance.repository.UserRepository;
+import com.civic.grievance.repository.DepartmentRepository;
 import com.civic.grievance.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ public abstract class IntegrationTestBase {
 
     @Autowired protected MockMvc mockMvc;
     @Autowired protected UserRepository userRepository;
+    @Autowired protected DepartmentRepository departmentRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JwtUtil jwtUtil;
     @Autowired protected UserDetailsService userDetailsService;
@@ -36,9 +38,11 @@ public abstract class IntegrationTestBase {
     protected String adminToken;
     protected String citizenToken;
     protected String officerToken;
+    protected String supervisorToken;
     protected User adminUser;
     protected User citizenUser;
     protected User officerUser;
+    protected User supervisorUser;
 
     @BeforeEach
     void setUpUsers() {
@@ -49,15 +53,19 @@ public abstract class IntegrationTestBase {
         jdbcTemplate.execute("TRUNCATE TABLE complaint_media");
         jdbcTemplate.execute("TRUNCATE TABLE complaints");
         jdbcTemplate.execute("TRUNCATE TABLE users");
+        jdbcTemplate.execute("TRUNCATE TABLE departments");
+        jdbcTemplate.execute("TRUNCATE TABLE audit_logs");
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY TRUE");
 
         adminUser   = createUser("admin@test.com",   "Admin",   "admin123",   Role.ADMIN,   true);
         citizenUser = createUser("citizen@test.com", "Citizen", "citizen123", Role.CITIZEN, true);
         officerUser = createUser("officer@test.com", "Officer", "officer123", Role.OFFICER, true);
+        supervisorUser = createUser("supervisor@test.com", "Supervisor", "supervisor123", Role.SUPERVISOR, true);
 
         adminToken   = generateToken("admin@test.com");
         citizenToken = generateToken("citizen@test.com");
         officerToken = generateToken("officer@test.com");
+        supervisorToken = generateToken("supervisor@test.com");
     }
 
     protected User createUser(String email, String name, String password, Role role, boolean approved) {

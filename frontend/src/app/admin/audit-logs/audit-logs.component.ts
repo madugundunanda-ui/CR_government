@@ -1,137 +1,140 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
+import { AdminLayoutComponent } from '../../shared/components/admin-layout/admin-layout.component';
 import { environment } from '../../../environments/environment';
 
 interface AuditLogItem {
-    id: number;
-    action: string;
-    details: string;
-    actorName: string;
-    entityType: string;
-    relatedEntityId: number;
-    createdAt: string;
+  id: number;
+  action: string;
+  details: string;
+  actorName: string;
+  entityType: string;
+  relatedEntityId: number;
+  createdAt: string;
 }
 
 @Component({
-    selector: 'app-audit-logs',
-    standalone: true,
-    imports: [CommonModule, RouterLink],
-    template: `
-    <div class="dashboard-layout">
-      <aside class="sidebar">
-        <div class="sidebar-user">
-          <div class="avatar" style="background:#e9c46a; color:#1a2340;">AD</div>
-          <div class="user-name">{{ auth.currentUser()?.name }}</div>
-          <div class="user-role">System Administrator</div>
+  selector: 'app-audit-logs',
+  standalone: true,
+  imports: [CommonModule, RouterLink, FormsModule, AdminLayoutComponent],
+  template: `
+  <app-admin-layout active="audit">
+    <div class="page-wrap">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Audit Log</h2>
+          <p>System activity trail — all significant actions taken by users and administrators.</p>
         </div>
-        <nav class="nav-menu">
-          <div class="nav-section-title">Overview</div>
-          <a routerLink="/admin/dashboard" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
-          <a routerLink="/admin/all-complaints" class="nav-item"><span class="nav-icon">📋</span> All Complaints</a>
-          <a routerLink="/admin/citizens" class="nav-item"><span class="nav-icon">👥</span> Citizens</a>
-          <a routerLink="/admin/officers" class="nav-item"><span class="nav-icon">👮</span> Officers</a>
-          <div class="nav-section-title">Management</div>
-          <a routerLink="/admin/departments" class="nav-item"><span class="nav-icon">🏢</span> Departments</a>
-          <div class="nav-section-title">Reports</div>
-          <a routerLink="/admin/analytics" class="nav-item"><span class="nav-icon">📈</span> Analytics</a>
-          <a routerLink="/admin/audit-logs" class="nav-item active"><span class="nav-icon">🔒</span> Audit Logs</a>
-          <div class="nav-section-title">Account</div>
-          <a routerLink="/profile" class="nav-item"><span class="nav-icon">👤</span> Profile</a>
-          <button class="nav-item logout-btn" (click)="auth.logout()"><span class="nav-icon">🚪</span> Sign Out</button>
-        </nav>
-      </aside>
-
-      <main class="main-content">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h2>Audit Logs</h2>
-            <p style="font-size:0.875rem; color:var(--text-muted); margin:0;">
-              System activity trail — last 100 events.
-            </p>
-          </div>
-          <button class="btn btn-outline btn-sm" (click)="load()">🔄 Refresh</button>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" (click)="load()">Refresh</button>
         </div>
+      </div>
 
-        <div *ngIf="loading" style="text-align:center; padding:40px;"><div class="spinner"></div></div>
-        <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+      <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
 
-        <div *ngIf="!loading && logs.length === 0" class="empty-card">
-          <h3>No Audit Logs Yet</h3>
-          <p>System events will appear here as actions are taken.</p>
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input class="form-control" style="max-width:240px;" [(ngModel)]="searchQ" placeholder="Search action or actor…" />
+        <select class="form-control" style="width:auto;" [(ngModel)]="filterAction">
+          <option value="">All Actions</option>
+          <option value="CREATED">Created</option>
+          <option value="UPDATED">Updated</option>
+          <option value="ASSIGNED">Assigned</option>
+          <option value="DELETED">Deleted</option>
+          <option value="STATUS">Status Changed</option>
+        </select>
+        <span class="text-muted" style="font-size:0.75rem;margin-left:auto;">{{ filtered.length }} record(s)</span>
+      </div>
+
+      <div *ngIf="loading" class="loading-row"><div class="spinner"></div></div>
+
+      <div *ngIf="!loading && filtered.length === 0" class="empty-state">
+        {{ searchQ || filterAction ? 'No logs match the current filters.' : 'No audit logs yet. System events will appear here.' }}
+      </div>
+
+      <div *ngIf="!loading && filtered.length > 0" class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:60px;">ID</th>
+              <th style="width:160px;">Action</th>
+              <th>Details</th>
+              <th style="width:140px;">Actor</th>
+              <th style="width:120px;">Entity</th>
+              <th style="width:140px;">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of filtered">
+              <td style="font-size:0.7rem;color:var(--text-500);">#{{ log.id }}</td>
+              <td>
+                <span class="badge" [class]="actionBadge(log.action)">
+                  {{ log.action.split('_').join(' ') }}
+                </span>
+              </td>
+              <td style="font-size:0.78rem;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                {{ log.details }}
+              </td>
+              <td style="font-size:0.78rem;">{{ log.actorName || '—' }}</td>
+              <td>
+                <span style="font-size:0.68rem;background:var(--th-bg);border:1px solid var(--border);padding:1px 7px;border-radius:3px;font-weight:600;">
+                  {{ log.entityType }}{{ log.relatedEntityId ? ' #' + log.relatedEntityId : '' }}
+                </span>
+              </td>
+              <td style="font-size:0.72rem;color:var(--text-500);white-space:nowrap;">
+                {{ log.createdAt | date:'dd/MM/yy, HH:mm' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <span>Showing {{ filtered.length }} of {{ logs.length }} events</span>
         </div>
-
-        <div *ngIf="!loading && logs.length > 0" class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th><th>Action</th><th>Details</th>
-                <th>Actor</th><th>Entity</th><th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let log of logs">
-                <td style="font-size:0.75rem; color:var(--text-muted);">#{{ log.id }}</td>
-                <td>
-                  <span class="action-badge" [class]="getActionClass(log.action)">
-                    {{ log.action.split('_').join(' ') }}
-                  </span>
-                </td>
-                <td style="font-size:0.82rem; max-width:280px;">{{ log.details }}</td>
-                <td style="font-size:0.82rem;">{{ log.actorName || '—' }}</td>
-                <td>
-                  <span style="font-size:0.72rem; background:var(--bg-muted); padding:2px 8px; border-radius:20px; font-weight:600;">
-                    {{ log.entityType }} {{ log.relatedEntityId ? '#' + log.relatedEntityId : '' }}
-                  </span>
-                </td>
-                <td style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">
-                  {{ log.createdAt | date:'dd MMM yy, h:mm a' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </main>
+      </div>
     </div>
-  `,
-    styles: [`
-    .empty-card { text-align:center; padding:48px; background:white; border-radius:var(--radius-md);
-      border:1px solid var(--border); h3 { margin-bottom:8px; } p { color:var(--text-muted); } }
-    .table-wrapper { background:white; border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; }
-    .action-badge { font-size:0.7rem; font-weight:700; padding:3px 8px; border-radius:4px; white-space:nowrap;
-      &.act-create { background:#d1fae5; color:#065f46; }
-      &.act-change  { background:#dbeafe; color:#1e40af; }
-      &.act-assign  { background:#fef3c7; color:#92400e; }
-      &.act-delete  { background:#fee2e2; color:#991b1b; }
-      &.act-default { background:var(--bg-muted); color:var(--text-secondary); } }
-    .logout-btn { background:none; border:none; width:100%; text-align:left; color:rgba(255,255,255,0.75); cursor:pointer; font-family:var(--font); font-size:0.875rem; }
-  `]
+  </app-admin-layout>
+  `
 })
 export class AuditLogsComponent implements OnInit {
-    logs: AuditLogItem[] = [];
-    loading = false;
-    error = '';
+  logs: AuditLogItem[] = [];
+  loading = false;
+  error = '';
+  searchQ = '';
+  filterAction = '';
 
-    constructor(public auth: AuthService, private http: HttpClient) { }
+  constructor(public auth: AuthService, private http: HttpClient) {}
 
-    ngOnInit(): void { this.load(); }
+  ngOnInit(): void { this.load(); }
 
-    load(): void {
-        this.loading = true;
-        this.error = '';
-        this.http.get<AuditLogItem[]>(`${environment.apiUrl}/admin/audit-logs`).subscribe({
-            next: (list) => { this.logs = list; this.loading = false; },
-            error: () => { this.error = 'Failed to load audit logs.'; this.loading = false; }
-        });
-    }
+  load(): void {
+    this.loading = true;
+    this.error = '';
+    this.http.get<AuditLogItem[]>(`${environment.apiUrl}/admin/audit-logs`).subscribe({
+      next: (list) => { this.logs = list; this.loading = false; },
+      error: () => { this.error = 'Failed to load audit logs.'; this.loading = false; }
+    });
+  }
 
-    getActionClass(action: string): string {
-        if (action.includes('CREATED')) return 'act-create';
-        if (action.includes('CHANGED') || action.includes('UPDATED')) return 'act-change';
-        if (action.includes('ASSIGNED')) return 'act-assign';
-        if (action.includes('DELETED')) return 'act-delete';
-        return 'act-default';
-    }
+  get filtered(): AuditLogItem[] {
+    return this.logs.filter(l => {
+      const a = !this.filterAction || l.action.includes(this.filterAction);
+      const q = !this.searchQ ||
+        l.action.toLowerCase().includes(this.searchQ.toLowerCase()) ||
+        (l.actorName || '').toLowerCase().includes(this.searchQ.toLowerCase()) ||
+        (l.details || '').toLowerCase().includes(this.searchQ.toLowerCase());
+      return a && q;
+    });
+  }
+
+  actionBadge(action: string): string {
+    if (action.includes('CREATED'))                        return 'badge-RESOLVED';
+    if (action.includes('CHANGED') || action.includes('UPDATED')) return 'badge-ASSIGNED';
+    if (action.includes('ASSIGNED'))                       return 'badge-IN_PROGRESS';
+    if (action.includes('DELETED'))                        return 'badge-HIGH';
+    return 'badge-CLOSED';
+  }
 }
