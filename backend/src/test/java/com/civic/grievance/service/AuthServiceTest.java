@@ -175,6 +175,7 @@ class AuthServiceTest {
         RegisterRequest r = new RegisterRequest();
         r.setName("Test Citizen"); r.setEmail(email); r.setPassword("password123");
         r.setRole(Role.CITIZEN); r.setAddress("123 Main St"); r.setContactNumber("9876543210");
+        r.setIdentityType("AADHAAR"); r.setIdentityNumber("123456789012");
         return r;
     }
 }

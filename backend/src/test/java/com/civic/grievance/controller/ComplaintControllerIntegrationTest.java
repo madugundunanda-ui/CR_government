@@ -30,7 +30,7 @@ class ComplaintControllerIntegrationTest extends IntegrationTestBase {
     void createComplaint_withGeoTags() throws Exception {
         String body = """
             {"title":"Pothole on Main Road","description":"Large pothole near bank, very dangerous",
-             "priority":"HIGH","category":"ROADS_INFRASTRUCTURE",
+             "priority":"HIGH","category":"ROADS",
              "latitude":12.9716,"longitude":77.5946,"address":"MG Road, Bengaluru"}
             """;
         mockMvc.perform(post("/api/citizen/complaints")

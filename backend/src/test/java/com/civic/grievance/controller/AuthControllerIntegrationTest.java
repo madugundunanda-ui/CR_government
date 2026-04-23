@@ -60,7 +60,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void register_duplicateEmail_returns400() throws Exception {
         String body = """
             {"name":"Dupe","email":"citizen@test.com","password":"pass123",
-             "role":"CITIZEN","address":"addr","contactNumber":"9876"}
+             "role":"CITIZEN","address":"addr","contactNumber":"9876",
+             "identityType":"AADHAAR","identityNumber":"123456789012"}
             """;
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -74,7 +75,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void register_newCitizen_returns201() throws Exception {
         String body = """
             {"name":"New Person","email":"new@test.com","password":"pass1234",
-             "role":"CITIZEN","address":"New Address","contactNumber":"9876543210"}
+             "role":"CITIZEN","address":"New Address","contactNumber":"9876543210",
+             "identityType":"AADHAAR","identityNumber":"123456789012"}
             """;
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)

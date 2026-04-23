@@ -37,6 +37,7 @@ class ComplaintServiceTest {
     @Mock private EmailService emailService;
     @Mock private AuditLogService auditLogService;
     @Mock private FeedbackRepository feedbackRepository;
+    @Mock private ComplaintHistoryRepository complaintHistoryRepository;
     @InjectMocks private ComplaintService complaintService;
 
     // ─── Test Case 5: Create complaint with geo-tags ─────────────────────────
@@ -134,6 +135,7 @@ class ComplaintServiceTest {
         Complaint complaint = buildComplaint(10L, Status.ASSIGNED, citizen, officer);
 
         when(complaintRepository.findById(10L)).thenReturn(Optional.of(complaint));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(officer));
         when(complaintRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(notificationService).notifyUser(any(), any(), any(), any());
         doNothing().when(emailService).sendStatusUpdate(any(), any(), anyLong(), any(), any());
@@ -156,6 +158,7 @@ class ComplaintServiceTest {
         Complaint complaint = buildComplaint(10L, Status.ASSIGNED, citizen, officerA);
 
         when(complaintRepository.findById(10L)).thenReturn(Optional.of(complaint));
+        when(userRepository.findById(99L)).thenReturn(Optional.of(buildUser(99L, Role.OFFICER, "other@test.com", true)));
 
         UpdateStatusRequest req = new UpdateStatusRequest();
         req.setStatus(Status.IN_PROGRESS);
@@ -194,6 +197,7 @@ class ComplaintServiceTest {
         Complaint complaint = buildComplaint(10L, Status.ASSIGNED, citizen, officer);
 
         when(complaintRepository.findById(10L)).thenReturn(Optional.of(complaint));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(officer));
         when(complaintRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(emailService).sendStatusUpdate(any(), any(), anyLong(), any(), any());
         doNothing().when(auditLogService).log(any(), any(), any(), any(), any(), any());
