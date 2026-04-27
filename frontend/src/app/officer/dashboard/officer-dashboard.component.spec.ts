@@ -29,7 +29,7 @@ describe('OfficerDashboardComponent', () => {
 
     beforeEach(async () => {
         const authSpy = jasmine.createSpyObj('AuthService', ['currentUser', 'logout', 'isLoggedIn', 'getRole']);
-        authSpy.currentUser.and.returnValue({ id: '2', name: 'Officer Test', email: 'o@t.com', role: 'officer', isActive: true, createdAt: '' });
+        authSpy.currentUser.and.returnValue({ id: '2', name: 'Officer Test', email: 'o@t.com', role: 'OFFICER', isActive: true, createdAt: '' });
 
         complaintSpy = jasmine.createSpyObj('ComplaintService', ['getMyTasks', 'updateTaskStatus']);
         complaintSpy.getMyTasks.and.returnValue(of(MOCK_TASKS));
@@ -57,8 +57,8 @@ describe('OfficerDashboardComponent', () => {
         expect(filtered.length).toBe(1);
     });
 
-    it('TC-08b: shows all when filterStatus is "all"', () => {
-        component.filterStatus = 'all';
+    it('TC-08b: shows all when filterStatus is ""', () => {
+        component.filterStatus = '';
         expect(component.filteredComplaints.length).toBe(3);
     });
 
@@ -77,7 +77,7 @@ describe('OfficerDashboardComponent', () => {
     it('TC-09b: changeStatus calls updateTaskStatus', () => {
         complaintSpy.updateTaskStatus.and.returnValue(of({ ...MOCK_TASKS[0], status: 'IN_PROGRESS' }));
         component.changeStatus(MOCK_TASKS[0], 'IN_PROGRESS');
-        expect(complaintSpy.updateTaskStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS', undefined);
+        expect(complaintSpy.updateTaskStatus).toHaveBeenCalledWith(1, 'IN_PROGRESS');
     });
 
     it('resolutionRate calculates correctly', () => {

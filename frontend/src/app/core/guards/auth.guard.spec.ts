@@ -27,27 +27,27 @@ describe('authGuard', () => {
     // TC-12: Role-based navigation — logged-in citizen accessing citizen route
     it('TC-12: allows citizen to access citizen route', () => {
         authService.isLoggedIn.and.returnValue(true);
-        authService.getRole.and.returnValue('citizen');
-        expect(runGuard('citizen', 'citizen')).toBeTrue();
+        authService.getRole.and.returnValue('CITIZEN');
+        expect(runGuard('CITIZEN', 'CITIZEN')).toBeTrue();
     });
 
     it('TC-12b: blocks citizen from admin route, redirects to citizen dashboard', () => {
         authService.isLoggedIn.and.returnValue(true);
-        authService.getRole.and.returnValue('citizen');
-        runGuard('citizen', 'admin');
+        authService.getRole.and.returnValue('CITIZEN');
+        runGuard('CITIZEN', 'ADMIN');
         expect(router.navigate).toHaveBeenCalledWith(['/citizen/dashboard']);
     });
 
     it('blocks unauthenticated access, redirects to login', () => {
         authService.isLoggedIn.and.returnValue(false);
-        runGuard(null, 'citizen');
+        runGuard(null, 'CITIZEN');
         expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
     });
 
     it('allows officer to access officer routes', () => {
         authService.isLoggedIn.and.returnValue(true);
-        authService.getRole.and.returnValue('officer');
-        expect(runGuard('officer', 'officer')).toBeTrue();
+        authService.getRole.and.returnValue('OFFICER');
+        expect(runGuard('OFFICER', 'OFFICER')).toBeTrue();
     });
 });
 
@@ -76,7 +76,7 @@ describe('guestGuard', () => {
 
     it('blocks logged-in citizen from login page, redirects to dashboard', () => {
         authService.isLoggedIn.and.returnValue(true);
-        authService.getRole.and.returnValue('citizen');
+        authService.getRole.and.returnValue('CITIZEN');
         TestBed.runInInjectionContext(() =>
             guestGuard({} as ActivatedRouteSnapshot, {} as any)
         );

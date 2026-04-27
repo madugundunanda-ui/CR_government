@@ -32,7 +32,7 @@ describe('LoginComponent', () => {
     // TC-02: Error message on invalid credentials
     it('TC-02: shows error message when login fails', () => {
         authService.login.and.returnValue(throwError(() => new Error('Invalid email or password')));
-        component.loginForm.patchValue({ role: 'citizen', email: 'bad@test.com', password: 'wrong' });
+        component.loginForm.patchValue({ role: 'CITIZEN', email: 'bad@test.com', password: 'wrong' });
         component.onSubmit();
         expect(component.errorMsg).toContain('Invalid');
         expect(component.loading).toBeFalse();
@@ -41,7 +41,7 @@ describe('LoginComponent', () => {
     // TC-15: API downtime shows user-friendly error
     it('TC-15: shows friendly error on API downtime/network failure', () => {
         authService.login.and.returnValue(throwError(() => new Error('Something went wrong.')));
-        component.loginForm.patchValue({ role: 'citizen', email: 'c@test.com', password: 'p' });
+        component.loginForm.patchValue({ role: 'CITIZEN', email: 'c@test.com', password: 'p' });
         component.onSubmit();
         expect(component.errorMsg).toBeTruthy();
         expect(component.errorMsg.length).toBeGreaterThan(0);
@@ -50,7 +50,7 @@ describe('LoginComponent', () => {
     // TC-03: Successful login handled
     it('TC-03: login success clears error and stops loading', () => {
         authService.login.and.returnValue(of({} as any));
-        component.loginForm.patchValue({ role: 'citizen', email: 'c@test.com', password: 'pass' });
+        component.loginForm.patchValue({ role: 'CITIZEN', email: 'c@test.com', password: 'pass' });
         component.onSubmit();
         expect(component.errorMsg).toBe('');
         expect(component.loading).toBeFalse();
@@ -61,13 +61,13 @@ describe('LoginComponent', () => {
     });
 
     it('form is valid with all fields filled', () => {
-        component.loginForm.patchValue({ role: 'citizen', email: 'user@test.com', password: 'pass123' });
+        component.loginForm.patchValue({ role: 'CITIZEN', email: 'user@test.com', password: 'pass123' });
         expect(component.loginForm.valid).toBeTrue();
     });
 
     it('fillDemo auto-fills citizen credentials', () => {
-        component.fillDemo('citizen');
+        component.fillDemo('CITIZEN');
         expect(component.loginForm.get('email')?.value).toBe('citizen@demo.com');
-        expect(component.loginForm.get('role')?.value).toBe('citizen');
+        expect(component.loginForm.get('role')?.value).toBe('CITIZEN');
     });
 });

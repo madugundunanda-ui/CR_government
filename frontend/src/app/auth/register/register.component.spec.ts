@@ -67,7 +67,7 @@ describe('RegisterComponent', () => {
         authService.register.and.returnValue(of(registerResponse));
         component.registerForm.patchValue({
             fullName: 'Test User', email: 'new@test.com', phone: '9876543210',
-            address: 'Test Address', ward: 'Ward 1', idType: 'Aadhar Card',
+            address: 'Test Address', ward: 'Ward 1', idType: 'AADHAAR', idNumber: '123456789012',
             password: 'password123', confirmPassword: 'password123', consent: true,
         });
         component.onSubmit();
@@ -78,7 +78,7 @@ describe('RegisterComponent', () => {
         authService.register.and.returnValue(throwError(() => ({ error: { message: 'Email already registered' } })));
         component.registerForm.patchValue({
             fullName: 'Test User', email: 'dup@test.com', phone: '9876543210',
-            address: 'Test Address', ward: 'Ward 1', idType: 'Aadhar Card',
+            address: 'Test Address', ward: 'Ward 1', idType: 'AADHAAR', idNumber: '123456789012',
             password: 'password123', confirmPassword: 'password123', consent: true,
         });
         component.onSubmit();

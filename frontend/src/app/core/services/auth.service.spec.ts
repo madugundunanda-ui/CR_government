@@ -41,7 +41,7 @@ describe('AuthService', () => {
 
     // TC-10: JWT persisted in localStorage
     it('TC-10: stores JWT token in localStorage after login', (done) => {
-        service.login('citizen@test.com', 'pass', 'citizen').subscribe(() => {
+        service.login('citizen@test.com', 'pass', 'CITIZEN').subscribe(() => {
             expect(localStorage.getItem('civic_jwt_token')).toBe('mock.jwt.token');
             done();
         });
@@ -50,7 +50,7 @@ describe('AuthService', () => {
 
     // TC-03: Routes to correct dashboard after login
     it('TC-03: redirects citizen to /citizen/dashboard after login', (done) => {
-        service.login('citizen@test.com', 'pass', 'citizen').subscribe(() => {
+        service.login('citizen@test.com', 'pass', 'CITIZEN').subscribe(() => {
             expect(router.navigate).toHaveBeenCalledWith(['/citizen/dashboard']);
             done();
         });
@@ -59,7 +59,7 @@ describe('AuthService', () => {
 
     it('TC-03b: redirects admin to /admin/dashboard after login', (done) => {
         const adminResp = { ...MOCK_RESPONSE, email: 'admin@test.com', role: 'ADMIN' as const };
-        service.login('admin@test.com', 'pass', 'admin').subscribe(() => {
+        service.login('admin@test.com', 'pass', 'ADMIN').subscribe(() => {
             expect(router.navigate).toHaveBeenCalledWith(['/admin/dashboard']);
             done();
         });
@@ -68,7 +68,7 @@ describe('AuthService', () => {
 
     it('TC-03c: redirects officer to /officer/dashboard after login', (done) => {
         const offResp = { ...MOCK_RESPONSE, email: 'off@test.com', role: 'OFFICER' as const };
-        service.login('off@test.com', 'pass', 'officer').subscribe(() => {
+        service.login('off@test.com', 'pass', 'OFFICER').subscribe(() => {
             expect(router.navigate).toHaveBeenCalledWith(['/officer/dashboard']);
             done();
         });
@@ -77,7 +77,7 @@ describe('AuthService', () => {
 
     // TC-20: Logout clears session data
     it('TC-20: logout removes token and user from localStorage', (done) => {
-        service.login('citizen@test.com', 'pass', 'citizen').subscribe(() => {
+        service.login('citizen@test.com', 'pass', 'CITIZEN').subscribe(() => {
             expect(localStorage.getItem('civic_jwt_token')).toBeTruthy();
             service.logout();
             expect(localStorage.getItem('civic_jwt_token')).toBeNull();
@@ -98,7 +98,7 @@ describe('AuthService', () => {
 
     // Role mismatch throws
     it('login throws if role does not match', (done) => {
-        service.login('citizen@test.com', 'pass', 'admin').subscribe({
+        service.login('citizen@test.com', 'pass', 'ADMIN').subscribe({
             error: (err) => {
                 expect(err.message).toContain('role');
                 done();
@@ -113,9 +113,9 @@ describe('AuthService', () => {
     });
 
     // getRole returns correct role after login
-    it('getRole returns citizen after citizen login', (done) => {
-        service.login('citizen@test.com', 'pass', 'citizen').subscribe(() => {
-            expect(service.getRole()).toBe('citizen');
+    it('getRole returns CITIZEN after citizen login', (done) => {
+        service.login('citizen@test.com', 'pass', 'CITIZEN').subscribe(() => {
+            expect(service.getRole()).toBe('CITIZEN');
             done();
         });
         http.expectOne(`${environment.apiUrl}/auth/login`).flush(MOCK_RESPONSE);
